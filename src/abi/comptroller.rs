@@ -4,12 +4,92 @@
     pub mod events {
         use super::INTERNAL_ERR;
         #[derive(Debug, Clone, PartialEq)]
-        pub struct ActionPaused {
+        pub struct ActionPaused1 {
+            pub action: String,
+            pub pause_state: bool,
+        }
+        impl ActionPaused1 {
+            const TOPIC_ID: [u8; 32] = [
+                239u8,
+                21u8,
+                157u8,
+                154u8,
+                50u8,
+                178u8,
+                71u8,
+                46u8,
+                50u8,
+                176u8,
+                152u8,
+                249u8,
+                84u8,
+                243u8,
+                206u8,
+                98u8,
+                210u8,
+                50u8,
+                147u8,
+                159u8,
+                28u8,
+                32u8,
+                112u8,
+                112u8,
+                181u8,
+                132u8,
+                223u8,
+                24u8,
+                20u8,
+                222u8,
+                45u8,
+                224u8,
+            ];
+            pub fn match_log(log: &substreams_ethereum::pb::eth::v1::Log) -> bool {
+                if log.topics.len() != 1usize {
+                    return false;
+                }
+                if log.data.len() < 96usize {
+                    return false;
+                }
+                return log.topics.get(0).expect("bounds already checked").as_ref()
+                    == Self::TOPIC_ID;
+            }
+            pub fn decode(
+                log: &substreams_ethereum::pb::eth::v1::Log,
+            ) -> Result<Self, String> {
+                let mut values = ethabi::decode(
+                        &[ethabi::ParamType::String, ethabi::ParamType::Bool],
+                        log.data.as_ref(),
+                    )
+                    .map_err(|e| format!("unable to decode log.data: {}", e))?;
+                Ok(Self {
+                    pause_state: values
+                        .pop()
+                        .expect(INTERNAL_ERR)
+                        .into_bool()
+                        .expect(INTERNAL_ERR),
+                    action: values
+                        .pop()
+                        .expect(INTERNAL_ERR)
+                        .into_string()
+                        .expect(INTERNAL_ERR),
+                })
+            }
+            pub fn must_decode(log: &substreams_ethereum::pb::eth::v1::Log) -> Self {
+                match Self::decode(log) {
+                    Ok(v) => v,
+                    Err(e) => {
+                        panic!("Unable to decode logs.ActionPaused1 event: {:#}", e)
+                    }
+                }
+            }
+        }
+        #[derive(Debug, Clone, PartialEq)]
+        pub struct ActionPaused2 {
             pub c_token: Vec<u8>,
             pub action: String,
             pub pause_state: bool,
         }
-        impl ActionPaused {
+        impl ActionPaused2 {
             const TOPIC_ID: [u8; 32] = [
                 113u8,
                 174u8,
@@ -89,7 +169,9 @@
             pub fn must_decode(log: &substreams_ethereum::pb::eth::v1::Log) -> Self {
                 match Self::decode(log) {
                     Ok(v) => v,
-                    Err(e) => panic!("Unable to decode logs.ActionPaused event: {:#}", e),
+                    Err(e) => {
+                        panic!("Unable to decode logs.ActionPaused2 event: {:#}", e)
+                    }
                 }
             }
         }

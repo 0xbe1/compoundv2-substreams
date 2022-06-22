@@ -45,12 +45,6 @@ Error: rpc error: code = Unknown desc = error building pipeline: synchronizing s
 
 Cannot run substreams-mongo-sink because substreams-databases is closed source. See [thread](https://0xbe1.slack.com/archives/D03KYSQU093/p1655860646395009).
 
-### ABI codegen bug
-
-ABI codegen doesn't support 2 events with the same name. See [thread](https://0xbe1.slack.com/archives/C03B2US85J4/p1655883975882059).
-
-As a workaround, I delete `ActionPaused` event from comptroller.json.
-
 ## Wishlist
 
 ### Common event mapper (Credits to Sebastian)
