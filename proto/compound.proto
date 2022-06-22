@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package compound.v1;
+
+message MarketListedList {
+  repeated MarketListed market_listed_list = 1;
+}
+
+message MarketListed {
+  bytes trx_hash = 4;
+  uint64 ordinal = 5;
+  bytes ctoken = 1;
+}
