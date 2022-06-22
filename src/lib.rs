@@ -5,10 +5,12 @@ mod pb;
 mod rpc;
 mod utils;
 
+use crate::utils::address_pretty;
 use hex_literal::hex;
 use pb::compound;
-use substreams::{proto, store, Hex};
+use substreams::{log, proto, store, Hex};
 use substreams_ethereum::pb::eth::v1 as eth;
+use substreams_ethereum::NULL_ADDRESS;
 
 const COMPTROLLER_CONTRACT: [u8; 20] = hex!("3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B");
 
@@ -47,13 +49,41 @@ fn store_token(market_listed_list: compound::MarketListedList, s: store::StoreSe
     for market_listed in market_listed_list.market_listed_list {
         let ctoken_id = market_listed.ctoken;
         let ctoken = rpc::fetch_token(&ctoken_id);
-        // let underlying_token_id = rpc::fetch_underlying(&ctoken_id);
-        // let underlying_token = rpc::fetch_token(&underlying_token_id);
+        let is_ceth = ctoken_id == Hex::decode("4ddc2d193948926d02f9b1fe9e1daa0718270ed5").unwrap();
+        let is_csai = ctoken_id == Hex::decode("f5dce57282a584d2746faf1593d3121fcac444dc").unwrap();
+        let underlying_token_id: Vec<u8> = if is_ceth {
+            NULL_ADDRESS.to_vec()
+        } else if is_csai {
+            Hex::decode("89d24a6b4ccb1b6faa2625fe562bdd9a23260359").unwrap()
+        } else {
+            rpc::fetch_underlying(&ctoken_id)
+        };
+        let underlying_token = if is_ceth {
+            compound::Token {
+                id: address_pretty(&NULL_ADDRESS),
+                name: "Ether".to_string(),
+                symbol: "ETH".to_string(),
+                decimals: 18,
+            }
+        } else if is_csai {
+            compound::Token {
+                id: address_pretty(&hex!("89d24a6b4ccb1b6faa2625fe562bdd9a23260359")),
+                name: "Sai Stablecoin v1.0 (SAI)".to_string(),
+                symbol: "DAI".to_string(),
+                decimals: 18,
+            }
+        } else {
+            rpc::fetch_token(&underlying_token_id)
+        };
         s.set(
             0,
             format!("token:{}", Hex(&ctoken_id)),
             &proto::encode(&ctoken).unwrap(),
         );
-        // s.set(0, format!("token:{}", Hex(&underlying_token_id)), &proto::encode(&underlying_token).unwrap())
+        s.set(
+            0,
+            format!("token:{}", Hex(&underlying_token_id)),
+            &proto::encode(&underlying_token).unwrap(),
+        )
     }
 }
