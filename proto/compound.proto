@@ -11,3 +11,17 @@ message MarketListed {
   uint64 ordinal = 5;
   bytes ctoken = 1;
 }
+
+message Token {
+  string id = 1;
+  string name = 2;
+  string symbol = 3;
+  uint64 decimals = 4;
+}
+
+message Market {
+  string id = 1;
+  string name = 2;
+  string input_token_id = 3;
+  string output_token_id = 4;
+}

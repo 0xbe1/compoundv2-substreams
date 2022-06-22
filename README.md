@@ -28,12 +28,7 @@ make build
 
 ```bash
 sftoken
-
-# to run the map module
-substreams run -e api-dev.streamingfast.io:443 substreams.yaml map_transfers --start-block 12292922 --stop-block +1
-
-# to run the store module (and the map module in the background)
-substreams run -e api-dev.streamingfast.io:443 substreams.yaml store_transfers --start-block 12292922 --stop-block +1
+substreams run -e api-dev.streamingfast.io:443 substreams.yaml map_market_listed,store_token --start-block 7710778 --stop-block +10
 ```
 
 ## Troubleshooting
