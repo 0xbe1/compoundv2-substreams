@@ -1,5 +1,7 @@
 use substreams::Hex;
 use substreams_ethereum::{pb::eth, rpc};
+use crypto::sha3::Sha3;
+use crypto::digest::Digest;
 
 use crate::{
     pb::compound::Token,
@@ -9,9 +11,9 @@ use crate::{
 // TODO: return Result
 
 pub fn fetch_token(addr: &Vec<u8>) -> Token {
-    let decimals = Hex::decode("313ce567").unwrap();
-    let name = Hex::decode("06fdde03").unwrap();
-    let symbol = Hex::decode("95d89b41").unwrap();
+    let decimals = Hex::decode(method_hash("decimals()")).unwrap();
+    let name = Hex::decode(method_hash("name()")).unwrap();
+    let symbol = Hex::decode(method_hash("symbol()")).unwrap();
     let rpc_calls = eth::rpc::RpcCalls {
         calls: vec![
             eth::rpc::RpcCall {
@@ -76,4 +78,10 @@ pub fn fetch_underlying(addr: &Vec<u8>) -> Vec<u8> {
         )
     };
     return responses[0].raw[12..32].to_vec();
+}
+
+fn method_hash(method: &str) -> String {
+    let mut hasher = Sha3::sha3_256();
+    hasher.input_str(method);
+    return hasher.result_str()
 }

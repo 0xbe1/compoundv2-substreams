@@ -12,6 +12,7 @@ crate-type = ["cdylib"]
 ethabi = "17.0"
 hex-literal = "0.3.4"
 prost = "0.10.1"
+rust-crypto = "0.2.36"
 # Use latest from https://crates.io/crates/substreams
 substreams = "0.0.11"
 # Use latest from https://crates.io/crates/substreams-ethereum
