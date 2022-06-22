@@ -1,14 +1,26 @@
 # CompoundV2 Substreams
 
+Ongoing effort to index Compound V2 using substreams.
+
 ## Quick Start
 
 ### Install
 
 Clone streamingfast/substreams repo.
 
-Then, run `go install ./cmd/substreams` against the `develop` branch to get the latest `substreams` cli.
+Run `go install ./cmd/substreams` under `substreams` repo `develop` branch to get the latest `substreams` cli.
+
+Run `brew install bufbuild/buf/buf` to install `buf`.
 
 ### Build
+
+Generate src/pb
+
+```bash
+substreams protogen ./substreams.yaml --exclude-paths="sf/ethereum,sf/substreams,google"
+```
+
+Build
 
 ```bash
 cargo build --target wasm32-unknown-unknown --release
