@@ -1,4 +1,6 @@
+#[rustfmt::skip]
 mod abi;
+#[rustfmt::skip]
 mod pb;
 use hex_literal::hex;
 use pb::erc721;
@@ -61,4 +63,3 @@ fn store_transfers(transfers: erc721::Transfers, s: store::StoreAddInt64) {
 fn generate_key(holder: &Vec<u8>) -> String {
     return format!("total:{}:{}", Hex(holder), Hex(TRACKED_CONTRACT));
 }
-
