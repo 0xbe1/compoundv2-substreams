@@ -1,9 +1,9 @@
 [package]
-name = "substreams-template" # TODO: FIX THIS
+name = "compoundv2-substreams"
 version = "0.1.0"
-description = "Substream template demo project"
+description = "Ongoing effort to index Compound V2 using substreams"
 edition = "2021"
-repository = "https://github.com/streamingfast/substreams-template"
+repository = "https://github.com/0xbe1/compoundv2-substreams"
 
 [lib]
 crate-type = ["cdylib"]
