@@ -36,8 +36,7 @@ fn map_market_listed(
 
             Some(compound::MarketListed {
                 trx_hash: trx.hash.clone(),
-                // TODO: rename to block_index
-                ordinal: log.block_index as u64,
+                block_index: log.block_index as u64,
                 ctoken: market_listed.c_token,
             })
         }));
@@ -63,7 +62,7 @@ fn map_accrue_interest(
 
             Some(compound::AccrueInterest {
                 trx_hash: trx.hash.clone(),
-                ordinal: log.block_index as u64,
+                block_index: log.block_index as u64,
                 interest_accumulated: accrue_interest.interest_accumulated.to_string(),
                 borrow_index: accrue_interest.borrow_index.to_string(),
                 total_borrows: accrue_interest.total_borrows.to_string(),

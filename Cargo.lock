@@ -107,6 +107,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "compoundv2-substreams"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "ethabi",
+ "getrandom",
+ "hex-literal",
+ "prost",
+ "substreams",
+ "substreams-ethereum",
+]
+
+[[package]]
 name = "crunchy"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -770,19 +783,6 @@ dependencies = [
  "quote",
  "syn",
  "thiserror",
-]
-
-[[package]]
-name = "substreams-template"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "ethabi",
- "getrandom",
- "hex-literal",
- "prost",
- "substreams",
- "substreams-ethereum",
 ]
 
 [[package]]
