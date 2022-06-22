@@ -28,7 +28,7 @@ make build
 
 ```bash
 sftoken
-substreams run -e api-dev.streamingfast.io:443 substreams.yaml map_market_listed,store_token --start-block 7710778 --stop-block +10
+substreams run -e api-dev.streamingfast.io:443 substreams.yaml map_market_listed,store_market --start-block 7710778 --stop-block +10
 ```
 
 ## Troubleshooting

@@ -26,7 +26,7 @@ modules:
     output:
       type: proto:compound.v1.MarketListedList
 
-  - name: store_token
+  - name: store_market
     kind: store
     initialBlock: 7710671
     updatePolicy: set
