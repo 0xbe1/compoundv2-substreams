@@ -35,6 +35,7 @@ fn map_market_listed(
             let market_listed = abi::comptroller::events::MarketListed::must_decode(log);
 
             Some(compound::MarketListed {
+                address: log.address.clone(),
                 trx_hash: trx.hash.clone(),
                 block_index: log.block_index as u64,
                 ctoken: market_listed.c_token,
@@ -61,6 +62,7 @@ fn map_accrue_interest(
             let accrue_interest = abi::ctoken::events::AccrueInterest::must_decode(log);
 
             Some(compound::AccrueInterest {
+                address: log.address.clone(),
                 trx_hash: trx.hash.clone(),
                 block_index: log.block_index as u64,
                 interest_accumulated: accrue_interest.interest_accumulated.to_string(),
