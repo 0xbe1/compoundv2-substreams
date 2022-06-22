@@ -7,9 +7,9 @@ message MarketListedList {
 }
 
 message MarketListed {
-  bytes trx_hash = 4;
-  uint64 block_index = 5;
-  bytes ctoken = 1;
+  bytes trx_hash = 1;
+  uint64 block_index = 2;
+  bytes ctoken = 3;
 }
 
 message AccrueInterestList {
