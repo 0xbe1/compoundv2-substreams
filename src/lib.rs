@@ -36,6 +36,7 @@ fn map_market_listed(
 
             Some(compound::MarketListed {
                 trx_hash: trx.hash.clone(),
+                // TODO: rename to block_index
                 ordinal: log.block_index as u64,
                 ctoken: market_listed.c_token,
             })
@@ -43,6 +44,36 @@ fn map_market_listed(
     }
 
     Ok(compound::MarketListedList { market_listed_list })
+}
+
+#[substreams::handlers::map]
+fn map_accrue_interest(
+    blk: eth::Block,
+) -> Result<compound::AccrueInterestList, substreams::errors::Error> {
+    let mut accrue_interest_list: Vec<compound::AccrueInterest> = vec![];
+    for trx in blk.transaction_traces {
+        accrue_interest_list.extend(trx.receipt.unwrap().logs.iter().filter_map(|log| {
+            // TODO: filter by market id
+
+            if !abi::ctoken::events::AccrueInterest::match_log(log) {
+                return None;
+            }
+
+            let accrue_interest = abi::ctoken::events::AccrueInterest::must_decode(log);
+
+            Some(compound::AccrueInterest {
+                trx_hash: trx.hash.clone(),
+                ordinal: log.block_index as u64,
+                interest_accumulated: accrue_interest.interest_accumulated.to_string(),
+                borrow_index: accrue_interest.borrow_index.to_string(),
+                total_borrows: accrue_interest.total_borrows.to_string(),
+            })
+        }));
+    }
+
+    Ok(compound::AccrueInterestList {
+        accrue_interest_list,
+    })
 }
 
 #[substreams::handlers::store]

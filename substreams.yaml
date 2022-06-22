@@ -26,6 +26,14 @@ modules:
     output:
       type: proto:compound.v1.MarketListedList
 
+  - name: map_accrue_interest
+    kind: map
+    initialBlock: 7710671
+    inputs:
+      - source: sf.ethereum.type.v1.Block
+    output:
+      type: proto:compound.v1.AccrueInterestList
+
   - name: store_market
     kind: store
     initialBlock: 7710671

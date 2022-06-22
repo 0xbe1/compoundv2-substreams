@@ -12,6 +12,18 @@ message MarketListed {
   bytes ctoken = 1;
 }
 
+message AccrueInterestList {
+  repeated AccrueInterest accrue_interest_list = 1;
+}
+
+message AccrueInterest {
+  bytes trx_hash = 1;
+  uint64 ordinal = 2;
+  string interest_accumulated = 3;
+  string borrow_index = 4;
+  string total_borrows = 5;
+}
+
 message Token {
   string id = 1;
   string name = 2;
