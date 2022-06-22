@@ -99,3 +99,25 @@ fn store_market(market_listed_list: compound::MarketListedList, s: store::StoreS
         )
     }
 }
+
+#[substreams::handlers::store]
+fn store_price_oracle(blk: eth::Block, s: store::StoreSet) {
+    for trx in blk.transaction_traces {
+        for log in trx.receipt.unwrap().logs.iter() {
+            if log.address != COMPTROLLER_CONTRACT {
+                continue;
+            }
+
+            if !abi::comptroller::events::NewPriceOracle::match_log(log) {
+                continue;
+            }
+
+            let new_price_oracle = abi::comptroller::events::NewPriceOracle::must_decode(log);
+            s.set(
+                log.block_index as u64,
+                "protocol:price_oracle".to_string(),
+                &new_price_oracle.new_price_oracle,
+            );
+        }
+    }
+}

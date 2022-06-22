@@ -33,3 +33,11 @@ modules:
     valueType: bytes
     inputs:
       - map: map_market_listed
+
+  - name: store_price_oracle
+    kind: store
+    initialBlock: 7710671
+    updatePolicy: set
+    valueType: bytes
+    inputs:
+      - source: sf.ethereum.type.v1.Block
