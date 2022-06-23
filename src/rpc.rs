@@ -1,17 +1,16 @@
-use substreams::Hex;
 use substreams_ethereum::{pb::eth, rpc};
 
 use crate::{
     pb::compound::Token,
-    utils::{address_pretty, decode_string, decode_uint32},
+    utils::{address_pretty, decode_string, decode_uint32, method_signature},
 };
 
 // TODO: return Result
 
 pub fn fetch_token(addr: &Vec<u8>) -> Token {
-    let decimals = Hex::decode("313ce567").unwrap();
-    let name = Hex::decode("06fdde03").unwrap();
-    let symbol = Hex::decode("95d89b41").unwrap();
+    let decimals = method_signature("decimals()");
+    let name = method_signature("name()");
+    let symbol = method_signature("symbol()");
     let rpc_calls = eth::rpc::RpcCalls {
         calls: vec![
             eth::rpc::RpcCall {
@@ -30,11 +29,9 @@ pub fn fetch_token(addr: &Vec<u8>) -> Token {
     };
 
     let responses = rpc::eth_call(&rpc_calls).responses;
-
     if responses[0].failed || responses[1].failed || responses[2].failed {
         panic!("not a token because of a failure: {}", address_pretty(addr))
     };
-
     if responses[0].raw.len() != 32 || responses[1].raw.len() < 96 || responses[2].raw.len() < 96 {
         panic!(
             "not a token because response length: {}",
@@ -55,7 +52,7 @@ pub fn fetch_token(addr: &Vec<u8>) -> Token {
 }
 
 pub fn fetch_underlying(addr: &Vec<u8>) -> Vec<u8> {
-    let underlying = Hex::decode("6f307dc3").unwrap();
+    let underlying = method_signature("underlying()");
     let rpc_calls = eth::rpc::RpcCalls {
         calls: vec![eth::rpc::RpcCall {
             to_addr: Vec::from(addr.clone()),
@@ -64,11 +61,9 @@ pub fn fetch_underlying(addr: &Vec<u8>) -> Vec<u8> {
     };
 
     let responses = rpc::eth_call(&rpc_calls).responses;
-
     if responses[0].failed {
         panic!("not a token because of a failure: {}", address_pretty(addr))
     };
-
     if responses[0].raw.len() != 32 {
         panic!(
             "not a token because response length: {}",
@@ -77,3 +72,4 @@ pub fn fetch_underlying(addr: &Vec<u8>) -> Vec<u8> {
     };
     return responses[0].raw[12..32].to_vec();
 }
+

@@ -1,4 +1,5 @@
 use substreams::Hex;
+use tiny_keccak::{Hasher, Keccak};
 
 pub fn address_pretty(input: &[u8]) -> String {
     format!("0x{}", Hex::encode(input))
@@ -34,4 +35,14 @@ pub fn decode_string(input: &[u8]) -> String {
     }
 
     String::from_utf8_lossy(&input[64..end]).to_string()
+}
+
+// "name()" -> "06fdde03"
+// Same effect as: printf "name()" | keccak256 --no-0x | cut -c 1-8
+pub fn method_signature(method: &str) -> Vec<u8> {
+    let mut keccak = Keccak::v256();
+    let mut output = [0u8; 32];
+    keccak.update(&Vec::from(method));
+    keccak.finalize(&mut output);
+    return output[..8].to_vec();
 }
