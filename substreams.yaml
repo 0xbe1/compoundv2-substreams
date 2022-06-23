@@ -1,6 +1,6 @@
 specVersion: v0.1.0
 package:
-  name: "substreams_template"
+  name: "compoundv2_substreams"
   version: v0.1.0
 
 imports:
@@ -15,7 +15,7 @@ protobuf:
 binaries:
   default:
     type: wasm/rust-v1
-    file: ./target/wasm32-unknown-unknown/release/substreams_template.wasm
+    file: ./target/wasm32-unknown-unknown/release/compoundv2_substreams.wasm
 
 modules:
   - name: map_market_listed
