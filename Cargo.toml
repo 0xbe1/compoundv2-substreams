@@ -17,6 +17,7 @@ tiny-keccak = { version = "2.0", features = ["keccak"] }
 substreams = "0.0.11"
 # Use latest from https://crates.io/crates/substreams-ethereum
 substreams-ethereum = "0.1.4"
+num-bigint = "0.4"
 
 # Required so that ethabi > ethereum-types build correctly under wasm32-unknown-unknown
 [target.wasm32-unknown-unknown.dependencies]

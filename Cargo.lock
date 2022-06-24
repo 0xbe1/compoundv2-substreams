@@ -114,6 +114,7 @@ dependencies = [
  "ethabi",
  "getrandom",
  "hex-literal",
+ "num-bigint",
  "prost",
  "substreams",
  "substreams-ethereum",

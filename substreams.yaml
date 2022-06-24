@@ -36,16 +36,23 @@ modules:
 
   - name: store_market
     kind: store
-    initialBlock: 7710671
     updatePolicy: set
     valueType: bytes
     inputs:
       - map: map_market_listed
 
-  - name: store_price_oracle
+  - name: store_oracle
     kind: store
     initialBlock: 7710671
     updatePolicy: set
     valueType: bytes
     inputs:
       - source: sf.ethereum.type.v1.Block
+
+  - name: store_price
+    kind: store
+    updatePolicy: set
+    valueType: bytes
+    inputs:
+      - map: map_accrue_interest
+      - store: store_oracle

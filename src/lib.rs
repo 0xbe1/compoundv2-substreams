@@ -8,7 +8,7 @@ mod utils;
 use crate::utils::address_pretty;
 use hex_literal::hex;
 use pb::compound;
-use substreams::{proto, store, Hex};
+use substreams::{log, proto, store, Hex};
 use substreams_ethereum::pb::eth::v1 as eth;
 use substreams_ethereum::NULL_ADDRESS;
 
@@ -149,7 +149,7 @@ fn store_market(market_listed_list: compound::MarketListedList, output: store::S
 }
 
 #[substreams::handlers::store]
-fn store_price_oracle(blk: eth::Block, output: store::StoreSet) {
+fn store_oracle(blk: eth::Block, output: store::StoreSet) {
     for trx in blk.transaction_traces {
         for log in trx.receipt.unwrap().logs.iter() {
             if log.address != COMPTROLLER_CONTRACT {
@@ -162,10 +162,42 @@ fn store_price_oracle(blk: eth::Block, output: store::StoreSet) {
 
             let new_price_oracle = abi::comptroller::events::NewPriceOracle::must_decode(log);
             output.set(
-                log.block_index as u64,
-                "protocol:price_oracle".to_string(),
+                0,
+                "protocol:oracle".to_string(),
                 &new_price_oracle.new_price_oracle,
             );
+        }
+    }
+}
+
+#[substreams::handlers::store]
+fn store_price(
+    accrue_interest_list: compound::AccrueInterestList,
+    input: store::StoreGet,
+    output: store::StoreSet,
+) {
+    for accrue_interest in accrue_interest_list.accrue_interest_list {
+        let market = accrue_interest.address;
+        match input.get_last(&"protocol:oracle".to_string()) {
+            None => continue,
+            Some(oracle) => {
+                let method = if accrue_interest.block_number < 7710795 {
+                    "getPrice(address)"
+                } else {
+                    "getUnderlyingPrice(address)"
+                };
+                let price_res = rpc::fetch_price(&oracle, method, &market);
+                if price_res.is_err() {
+                    log::info!(price_res.err().unwrap());
+                    continue;
+                }
+                // log::debug!(format!("price {}", price_res.as_ref().unwrap()));
+                output.set(
+                    accrue_interest.block_number,
+                    format!("token:{}:price", address_pretty(&market)),
+                    &price_res.unwrap().to_bytes_be(),
+                )
+            }
         }
     }
 }

@@ -41,10 +41,6 @@ Error: rpc error: code = Unknown desc = error building pipeline: synchronizing s
 
 ## Issues
 
-### Not able to build DB Sink
-
-Cannot run substreams-mongo-sink because substreams-databases is closed source. See [thread](https://0xbe1.slack.com/archives/D03KYSQU093/p1655860646395009).
-
 ## Wishlist
 
 ### Common event mapper (Credits to Sebastian)
@@ -68,6 +64,6 @@ fn map_pairs(block: eth::Block) -> Result<Vec<Uniswap::Pair>, Error> {
 3 things:
 - Result type as a "list of things" (instead of having to create a "pluralized" proto definiton for every mapper).
 - Utility functions on the generated code for the majority use cases (e.g. filtering logs).
-- Decode & encode store values automatically.
+- Decode & encode store values / rpc responses automatically.
 
 [Thread](https://0xbe1.slack.com/archives/C03B2US85J4/p1655885793387659).
