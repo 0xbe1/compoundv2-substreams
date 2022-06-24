@@ -11,7 +11,7 @@ message MarketListedList {
 message MarketListed {
   bytes address = 1;
   bytes trx_hash = 2;
-  uint64 block_index = 3;
+  uint64 block_number = 3;
   bytes ctoken = 4;
 }
 
@@ -22,7 +22,7 @@ message AccrueInterestList {
 message AccrueInterest {
   bytes address = 1;
   bytes trx_hash = 2;
-  uint64 block_index = 3;
+  uint64 block_number = 3;
   string interest_accumulated = 4;
   string borrow_index = 5;
   string total_borrows = 6;

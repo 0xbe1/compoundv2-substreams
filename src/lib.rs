@@ -37,7 +37,7 @@ fn map_market_listed(
             Some(compound::MarketListed {
                 address: log.address.clone(),
                 trx_hash: trx.hash.clone(),
-                block_index: log.block_index as u64,
+                block_number: blk.number,
                 ctoken: market_listed.c_token,
             })
         }));
@@ -64,7 +64,7 @@ fn map_accrue_interest(
             Some(compound::AccrueInterest {
                 address: log.address.clone(),
                 trx_hash: trx.hash.clone(),
-                block_index: log.block_index as u64,
+                block_number: blk.number,
                 interest_accumulated: accrue_interest.interest_accumulated.to_string(),
                 borrow_index: accrue_interest.borrow_index.to_string(),
                 total_borrows: accrue_interest.total_borrows.to_string(),
@@ -78,7 +78,7 @@ fn map_accrue_interest(
 }
 
 #[substreams::handlers::store]
-fn store_market(market_listed_list: compound::MarketListedList, s: store::StoreSet) {
+fn store_market(market_listed_list: compound::MarketListedList, output: store::StoreSet) {
     for market_listed in market_listed_list.market_listed_list {
         let ctoken_id = market_listed.ctoken;
         let is_ceth = ctoken_id == Hex::decode("4ddc2d193948926d02f9b1fe9e1daa0718270ed5").unwrap();
@@ -114,17 +114,17 @@ fn store_market(market_listed_list: compound::MarketListedList, s: store::StoreS
             input_token_id: underlying_token.id.clone(),
             output_token_id: ctoken.id.clone(),
         };
-        s.set(
+        output.set(
             0,
             format!("token:{}", ctoken.id.clone()),
             &proto::encode(&ctoken).unwrap(),
         );
-        s.set(
+        output.set(
             0,
             format!("token:{}", underlying_token.id.clone()),
             &proto::encode(&underlying_token).unwrap(),
         );
-        s.set(
+        output.set(
             0,
             format!("market:{}", ctoken.id.clone()),
             &proto::encode(&market).unwrap(),
@@ -133,7 +133,7 @@ fn store_market(market_listed_list: compound::MarketListedList, s: store::StoreS
 }
 
 #[substreams::handlers::store]
-fn store_price_oracle(blk: eth::Block, s: store::StoreSet) {
+fn store_price_oracle(blk: eth::Block, output: store::StoreSet) {
     for trx in blk.transaction_traces {
         for log in trx.receipt.unwrap().logs.iter() {
             if log.address != COMPTROLLER_CONTRACT {
@@ -145,7 +145,7 @@ fn store_price_oracle(blk: eth::Block, s: store::StoreSet) {
             }
 
             let new_price_oracle = abi::comptroller::events::NewPriceOracle::must_decode(log);
-            s.set(
+            output.set(
                 log.block_index as u64,
                 "protocol:price_oracle".to_string(),
                 &new_price_oracle.new_price_oracle,
