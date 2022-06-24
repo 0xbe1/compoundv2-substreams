@@ -83,31 +83,47 @@ fn store_market(market_listed_list: compound::MarketListedList, output: store::S
         let ctoken_id = market_listed.ctoken;
         let is_ceth = ctoken_id == Hex::decode("4ddc2d193948926d02f9b1fe9e1daa0718270ed5").unwrap();
         let is_csai = ctoken_id == Hex::decode("f5dce57282a584d2746faf1593d3121fcac444dc").unwrap();
-        let ctoken = rpc::fetch_token(&ctoken_id);
-        let underlying_token_id: Vec<u8> = if is_ceth {
-            NULL_ADDRESS.to_vec()
+
+        let ctoken_res = rpc::fetch_token(&ctoken_id);
+        if ctoken_res.is_err() {
+            continue;
+        }
+        let ctoken = ctoken_res.unwrap();
+
+        let underlying_token_id_res: Result<Vec<u8>, String> = if is_ceth {
+            Ok(NULL_ADDRESS.to_vec())
         } else if is_csai {
-            Hex::decode("89d24a6b4ccb1b6faa2625fe562bdd9a23260359").unwrap()
+            Ok(Hex::decode("89d24a6b4ccb1b6faa2625fe562bdd9a23260359").unwrap())
         } else {
             rpc::fetch_underlying(&ctoken_id)
         };
-        let underlying_token = if is_ceth {
-            compound::Token {
+        if underlying_token_id_res.is_err() {
+            continue;
+        }
+        let underlying_token_id = underlying_token_id_res.unwrap();
+
+        let underlying_token_res = if is_ceth {
+            Ok(compound::Token {
                 id: address_pretty(&NULL_ADDRESS),
                 name: "Ether".to_string(),
                 symbol: "ETH".to_string(),
                 decimals: 18,
-            }
+            })
         } else if is_csai {
-            compound::Token {
+            Ok(compound::Token {
                 id: address_pretty(&hex!("89d24a6b4ccb1b6faa2625fe562bdd9a23260359")),
                 name: "Sai Stablecoin v1.0 (SAI)".to_string(),
                 symbol: "SAI".to_string(),
                 decimals: 18,
-            }
+            })
         } else {
             rpc::fetch_token(&underlying_token_id)
         };
+        if underlying_token_res.is_err() {
+            continue;
+        }
+        let underlying_token = underlying_token_res.unwrap();
+
         let market = compound::Market {
             id: ctoken.id.clone(),
             name: ctoken.name.clone(),
