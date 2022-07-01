@@ -2,33 +2,42 @@ syntax = "proto3";
 
 package compound.v1;
 
+//
 // event
+//
+
+message EventMeta {
+  bytes address = 1;
+  bytes txn_hash = 2;
+  uint32 log_index = 3;
+  uint64 block_number = 4;
+  int64 block_timestamp = 5;
+}
 
 message MarketListedList {
   repeated MarketListed market_listed_list = 1;
 }
 
 message MarketListed {
-  bytes address = 1;
-  bytes trx_hash = 2;
-  uint64 block_number = 3;
-  bytes ctoken = 4;
+  EventMeta meta = 1;
+  bytes ctoken = 2;
 }
 
 message AccrueInterestList {
   repeated AccrueInterest accrue_interest_list = 1;
 }
 
+// TODO: in later compound versions, AccrueInterest adds cashPrior
 message AccrueInterest {
-  bytes address = 1;
-  bytes trx_hash = 2;
-  uint64 block_number = 3;
-  string interest_accumulated = 4;
-  string borrow_index = 5;
-  string total_borrows = 6;
+  EventMeta meta = 1;
+  string interest_accumulated = 2;
+  string borrow_index = 3;
+  string total_borrows = 4;
 }
 
+//
 // data
+//
 
 message Token {
   string id = 1;

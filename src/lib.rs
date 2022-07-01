@@ -35,9 +35,21 @@ fn map_market_listed(
             let market_listed = abi::comptroller::events::MarketListed::must_decode(log);
 
             Some(compound::MarketListed {
-                address: log.address.clone(),
-                trx_hash: trx.hash.clone(),
-                block_number: blk.number,
+                // TODO: move to a helper function (blk, trx, log)
+                meta: Some(compound::EventMeta {
+                    address: log.address.clone(),
+                    txn_hash: trx.hash.clone(),
+                    log_index: log.index,
+                    block_number: blk.number,
+                    block_timestamp: blk
+                        .header
+                        .as_ref()
+                        .unwrap()
+                        .timestamp
+                        .as_ref()
+                        .unwrap()
+                        .seconds,
+                }),
                 ctoken: market_listed.c_token,
             })
         }));
@@ -62,9 +74,20 @@ fn map_accrue_interest(
             let accrue_interest = abi::ctoken::events::AccrueInterest::must_decode(log);
 
             Some(compound::AccrueInterest {
-                address: log.address.clone(),
-                trx_hash: trx.hash.clone(),
-                block_number: blk.number,
+                meta: Some(compound::EventMeta {
+                    address: log.address.clone(),
+                    txn_hash: trx.hash.clone(),
+                    log_index: log.index,
+                    block_number: blk.number,
+                    block_timestamp: blk
+                        .header
+                        .as_ref()
+                        .unwrap()
+                        .timestamp
+                        .as_ref()
+                        .unwrap()
+                        .seconds,
+                }),
                 interest_accumulated: accrue_interest.interest_accumulated.to_string(),
                 borrow_index: accrue_interest.borrow_index.to_string(),
                 total_borrows: accrue_interest.total_borrows.to_string(),
@@ -177,11 +200,11 @@ fn store_price(
     output: store::StoreSet,
 ) {
     for accrue_interest in accrue_interest_list.accrue_interest_list {
-        let market = accrue_interest.address;
+        let market = &accrue_interest.meta.as_ref().unwrap().address;
         match input.get_last(&"protocol:oracle".to_string()) {
             None => continue,
             Some(oracle) => {
-                let method = if accrue_interest.block_number < 7710795 {
+                let method = if accrue_interest.meta.as_ref().unwrap().block_number < 7710795 {
                     "getPrice(address)"
                 } else {
                     "getUnderlyingPrice(address)"
@@ -193,7 +216,7 @@ fn store_price(
                 }
                 // log::debug!(format!("price {}", price_res.as_ref().unwrap()));
                 output.set(
-                    accrue_interest.block_number,
+                    0,
                     format!("token:{}:price", address_pretty(&market)),
                     &price_res.unwrap().to_bytes_be(),
                 )
