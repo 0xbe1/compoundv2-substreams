@@ -2,10 +2,6 @@ syntax = "proto3";
 
 package compound.v1;
 
-//
-// event
-//
-
 message EventMeta {
   bytes address = 1;
   bytes txn_hash = 2;
@@ -26,10 +22,6 @@ message AccrueInterest {
   string total_borrows = 4;
 }
 
-//
-// data
-//
-
 message Token {
   string id = 1;
   string name = 2;
@@ -42,6 +34,10 @@ message Market {
   string name = 2;
   string input_token_id = 3;
   string output_token_id = 4;
+}
+
+message MintList {
+  repeated Mint mint_list = 1;
 }
 
 message Mint {

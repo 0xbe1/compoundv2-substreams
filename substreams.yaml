@@ -26,6 +26,15 @@ modules:
     output:
       type: proto:compound.v1.AccrueInterestList
 
+  - name: map_mint
+    kind: map
+    initialBlock: 7710671
+    inputs:
+      - source: sf.ethereum.type.v1.Block
+      - store: store_price
+    output:
+      type: proto:compound.v1.MintList
+
   - name: store_market
     kind: store
     initialBlock: 7710671
@@ -56,5 +65,4 @@ modules:
     valueType: bytes
     initialBlock: 7710671
     inputs:
-      - source: sf.ethereum.type.v1.Block
-      - store: store_price
+      - map: map_mint

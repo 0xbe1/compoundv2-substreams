@@ -57,8 +57,12 @@ fn map_accrue_interest(
     })
 }
 
-#[substreams::handlers::store]
-fn store_mint(blk: eth::Block, input: store::StoreGet, output: store::StoreSet) {
+#[substreams::handlers::map]
+fn map_mint(
+    blk: eth::Block,
+    input: store::StoreGet,
+) -> Result<compound::MintList, substreams::errors::Error> {
+    let mut mint_list = compound::MintList { mint_list: vec![] };
     for trx in blk.transaction_traces {
         for log in trx.receipt.unwrap().logs.iter() {
             if !abi::ctoken::events::Mint::match_log(log) {
@@ -66,12 +70,12 @@ fn store_mint(blk: eth::Block, input: store::StoreGet, output: store::StoreSet) 
             }
 
             let mint_event = abi::ctoken::events::Mint::must_decode(log);
-            let mint_id = format!("{}-{}", Hex::encode(&trx.hash), log.index);
             let mint = compound::Mint {
-                id: mint_id.clone(),
+                id: format!("{}-{}", Hex::encode(&trx.hash), log.index),
                 minter: mint_event.minter,
                 mint_amount: mint_event.mint_amount.to_string(),
                 mint_tokens: mint_event.mint_tokens.to_string(),
+                // TODO: calculate amount usd, it is only price now
                 mint_amount_usd: match input
                     .get_last(&format!("token:{}:price", address_pretty(&log.address)))
                 {
@@ -83,8 +87,16 @@ fn store_mint(blk: eth::Block, input: store::StoreGet, output: store::StoreSet) 
                 }
                 .to_string(),
             };
-            output.set(0, mint_id.clone(), &proto::encode(&mint).unwrap());
+            mint_list.mint_list.push(mint);
         }
+    }
+    Ok(mint_list)
+}
+
+#[substreams::handlers::store]
+fn store_mint(mint_list: compound::MintList, output: store::StoreSet) {
+    for mint in mint_list.mint_list {
+        output.set(0, mint.id.clone(), &proto::encode(&mint).unwrap());
     }
 }
 
