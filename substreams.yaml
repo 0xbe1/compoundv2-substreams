@@ -56,3 +56,12 @@ modules:
     inputs:
       - map: map_accrue_interest
       - store: store_oracle
+
+  - name: store_mint
+    kind: store
+    updatePolicy: set
+    valueType: bytes
+    initialBlock: 7710671
+    inputs:
+      - source: sf.ethereum.type.v1.Block
+      - store: store_price

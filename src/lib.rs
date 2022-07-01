@@ -7,6 +7,7 @@ mod utils;
 
 use crate::utils::address_pretty;
 use hex_literal::hex;
+use num_bigint::BigUint;
 use pb::compound;
 use substreams::{log, proto, store, Hex};
 use substreams_ethereum::pb::eth::v1 as eth;
@@ -24,6 +25,7 @@ fn map_market_listed(
     let mut market_listed_list: Vec<compound::MarketListed> = vec![];
     for trx in blk.transaction_traces {
         market_listed_list.extend(trx.receipt.unwrap().logs.iter().filter_map(|log| {
+            // TODO: fix this
             if log.address != COMPTROLLER_CONTRACT {
                 return None;
             }
@@ -98,6 +100,37 @@ fn map_accrue_interest(
     Ok(compound::AccrueInterestList {
         accrue_interest_list,
     })
+}
+
+#[substreams::handlers::store]
+fn store_mint(blk: eth::Block, input: store::StoreGet, output: store::StoreSet) {
+    for trx in blk.transaction_traces {
+        for log in trx.receipt.unwrap().logs.iter() {
+            if !abi::ctoken::events::Mint::match_log(log) {
+                continue;
+            }
+
+            let mint_event = abi::ctoken::events::Mint::must_decode(log);
+            let mint_id = format!("{}-{}", Hex::encode(&trx.hash), log.index);
+            let mint = compound::Mint {
+                id: mint_id.clone(),
+                minter: mint_event.minter,
+                mint_amount: mint_event.mint_amount.to_string(),
+                mint_tokens: mint_event.mint_tokens.to_string(),
+                mint_amount_usd: match input
+                    .get_last(&format!("token:{}:price", address_pretty(&log.address)))
+                {
+                    None => BigUint::default(),
+                    Some(price) => {
+                        // log::debug!("price {}", BigUint::from_bytes_be(&price));
+                        BigUint::from_bytes_be(&price)
+                    }
+                }
+                .to_string(),
+            };
+            output.set(0, mint_id.clone(), &proto::encode(&mint).unwrap());
+        }
+    }
 }
 
 #[substreams::handlers::store]

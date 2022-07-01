@@ -52,3 +52,11 @@ message Market {
   string input_token_id = 3;
   string output_token_id = 4;
 }
+
+message Mint {
+  string id = 1;
+  bytes minter = 2;
+  string mint_amount = 3;
+  string mint_tokens = 4;
+  string mint_amount_usd = 5;
+}
