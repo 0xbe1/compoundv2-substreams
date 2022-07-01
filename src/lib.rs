@@ -13,52 +13,7 @@ use substreams::{log, proto, store, Hex};
 use substreams_ethereum::pb::eth::v1 as eth;
 use substreams_ethereum::NULL_ADDRESS;
 
-const COMPTROLLER_CONTRACT: [u8; 20] = hex!("3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B");
-
 substreams_ethereum::init!();
-
-// TODO: use ethtokens
-#[substreams::handlers::map]
-fn map_market_listed(
-    blk: eth::Block,
-) -> Result<compound::MarketListedList, substreams::errors::Error> {
-    let mut market_listed_list: Vec<compound::MarketListed> = vec![];
-    for trx in blk.transaction_traces {
-        market_listed_list.extend(trx.receipt.unwrap().logs.iter().filter_map(|log| {
-            // TODO: fix this
-            if log.address != COMPTROLLER_CONTRACT {
-                return None;
-            }
-
-            if !abi::comptroller::events::MarketListed::match_log(log) {
-                return None;
-            }
-
-            let market_listed = abi::comptroller::events::MarketListed::must_decode(log);
-
-            Some(compound::MarketListed {
-                // TODO: move to a helper function (blk, trx, log)
-                meta: Some(compound::EventMeta {
-                    address: log.address.clone(),
-                    txn_hash: trx.hash.clone(),
-                    log_index: log.index,
-                    block_number: blk.number,
-                    block_timestamp: blk
-                        .header
-                        .as_ref()
-                        .unwrap()
-                        .timestamp
-                        .as_ref()
-                        .unwrap()
-                        .seconds,
-                }),
-                ctoken: market_listed.c_token,
-            })
-        }));
-    }
-
-    Ok(compound::MarketListedList { market_listed_list })
-}
 
 #[substreams::handlers::map]
 fn map_accrue_interest(
@@ -134,73 +89,83 @@ fn store_mint(blk: eth::Block, input: store::StoreGet, output: store::StoreSet) 
 }
 
 #[substreams::handlers::store]
-fn store_market(market_listed_list: compound::MarketListedList, output: store::StoreSet) {
-    for market_listed in market_listed_list.market_listed_list {
-        let ctoken_id = market_listed.ctoken;
-        let is_ceth = ctoken_id == Hex::decode("4ddc2d193948926d02f9b1fe9e1daa0718270ed5").unwrap();
-        let is_csai = ctoken_id == Hex::decode("f5dce57282a584d2746faf1593d3121fcac444dc").unwrap();
+fn store_market(blk: eth::Block, output: store::StoreSet) {
+    for trx in blk.transaction_traces {
+        for call in trx.calls.iter() {
+            for log in call.logs.iter() {
+                if !abi::comptroller::events::MarketListed::match_log(log) {
+                    continue;
+                }
+                let market_listed = abi::comptroller::events::MarketListed::must_decode(log);
+                let ctoken_id = market_listed.c_token;
+                let is_ceth =
+                    ctoken_id == Hex::decode("4ddc2d193948926d02f9b1fe9e1daa0718270ed5").unwrap();
+                let is_csai =
+                    ctoken_id == Hex::decode("f5dce57282a584d2746faf1593d3121fcac444dc").unwrap();
 
-        let ctoken_res = rpc::fetch_token(&ctoken_id);
-        if ctoken_res.is_err() {
-            continue;
+                let ctoken_res = rpc::fetch_token(&ctoken_id);
+                if ctoken_res.is_err() {
+                    continue;
+                }
+                let ctoken = ctoken_res.unwrap();
+
+                let underlying_token_id_res: Result<Vec<u8>, String> = if is_ceth {
+                    Ok(NULL_ADDRESS.to_vec())
+                } else if is_csai {
+                    Ok(Hex::decode("89d24a6b4ccb1b6faa2625fe562bdd9a23260359").unwrap())
+                } else {
+                    rpc::fetch_underlying(&ctoken_id)
+                };
+                if underlying_token_id_res.is_err() {
+                    continue;
+                }
+                let underlying_token_id = underlying_token_id_res.unwrap();
+
+                let underlying_token_res = if is_ceth {
+                    Ok(compound::Token {
+                        id: address_pretty(&NULL_ADDRESS),
+                        name: "Ether".to_string(),
+                        symbol: "ETH".to_string(),
+                        decimals: 18,
+                    })
+                } else if is_csai {
+                    Ok(compound::Token {
+                        id: address_pretty(&hex!("89d24a6b4ccb1b6faa2625fe562bdd9a23260359")),
+                        name: "Sai Stablecoin v1.0 (SAI)".to_string(),
+                        symbol: "SAI".to_string(),
+                        decimals: 18,
+                    })
+                } else {
+                    rpc::fetch_token(&underlying_token_id)
+                };
+                if underlying_token_res.is_err() {
+                    continue;
+                }
+                let underlying_token = underlying_token_res.unwrap();
+
+                let market = compound::Market {
+                    id: ctoken.id.clone(),
+                    name: ctoken.name.clone(),
+                    input_token_id: underlying_token.id.clone(),
+                    output_token_id: ctoken.id.clone(),
+                };
+                output.set(
+                    0,
+                    format!("token:{}", ctoken.id.clone()),
+                    &proto::encode(&ctoken).unwrap(),
+                );
+                output.set(
+                    0,
+                    format!("token:{}", underlying_token.id.clone()),
+                    &proto::encode(&underlying_token).unwrap(),
+                );
+                output.set(
+                    0,
+                    format!("market:{}", ctoken.id.clone()),
+                    &proto::encode(&market).unwrap(),
+                )
+            }
         }
-        let ctoken = ctoken_res.unwrap();
-
-        let underlying_token_id_res: Result<Vec<u8>, String> = if is_ceth {
-            Ok(NULL_ADDRESS.to_vec())
-        } else if is_csai {
-            Ok(Hex::decode("89d24a6b4ccb1b6faa2625fe562bdd9a23260359").unwrap())
-        } else {
-            rpc::fetch_underlying(&ctoken_id)
-        };
-        if underlying_token_id_res.is_err() {
-            continue;
-        }
-        let underlying_token_id = underlying_token_id_res.unwrap();
-
-        let underlying_token_res = if is_ceth {
-            Ok(compound::Token {
-                id: address_pretty(&NULL_ADDRESS),
-                name: "Ether".to_string(),
-                symbol: "ETH".to_string(),
-                decimals: 18,
-            })
-        } else if is_csai {
-            Ok(compound::Token {
-                id: address_pretty(&hex!("89d24a6b4ccb1b6faa2625fe562bdd9a23260359")),
-                name: "Sai Stablecoin v1.0 (SAI)".to_string(),
-                symbol: "SAI".to_string(),
-                decimals: 18,
-            })
-        } else {
-            rpc::fetch_token(&underlying_token_id)
-        };
-        if underlying_token_res.is_err() {
-            continue;
-        }
-        let underlying_token = underlying_token_res.unwrap();
-
-        let market = compound::Market {
-            id: ctoken.id.clone(),
-            name: ctoken.name.clone(),
-            input_token_id: underlying_token.id.clone(),
-            output_token_id: ctoken.id.clone(),
-        };
-        output.set(
-            0,
-            format!("token:{}", ctoken.id.clone()),
-            &proto::encode(&ctoken).unwrap(),
-        );
-        output.set(
-            0,
-            format!("token:{}", underlying_token.id.clone()),
-            &proto::encode(&underlying_token).unwrap(),
-        );
-        output.set(
-            0,
-            format!("market:{}", ctoken.id.clone()),
-            &proto::encode(&market).unwrap(),
-        )
     }
 }
 
@@ -208,10 +173,6 @@ fn store_market(market_listed_list: compound::MarketListedList, output: store::S
 fn store_oracle(blk: eth::Block, output: store::StoreSet) {
     for trx in blk.transaction_traces {
         for log in trx.receipt.unwrap().logs.iter() {
-            if log.address != COMPTROLLER_CONTRACT {
-                continue;
-            }
-
             if !abi::comptroller::events::NewPriceOracle::match_log(log) {
                 continue;
             }

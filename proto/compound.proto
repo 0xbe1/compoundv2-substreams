@@ -14,15 +14,6 @@ message EventMeta {
   int64 block_timestamp = 5;
 }
 
-message MarketListedList {
-  repeated MarketListed market_listed_list = 1;
-}
-
-message MarketListed {
-  EventMeta meta = 1;
-  bytes ctoken = 2;
-}
-
 message AccrueInterestList {
   repeated AccrueInterest accrue_interest_list = 1;
 }

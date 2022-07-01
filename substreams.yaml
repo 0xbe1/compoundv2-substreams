@@ -18,14 +18,6 @@ binaries:
     file: ./target/wasm32-unknown-unknown/release/compoundv2_substreams.wasm
 
 modules:
-  - name: map_market_listed
-    kind: map
-    initialBlock: 7710671
-    inputs:
-      - source: sf.ethereum.type.v1.Block
-    output:
-      type: proto:compound.v1.MarketListedList
-
   - name: map_accrue_interest
     kind: map
     initialBlock: 7710671
@@ -36,10 +28,11 @@ modules:
 
   - name: store_market
     kind: store
+    initialBlock: 7710671
     updatePolicy: set
     valueType: bytes
     inputs:
-      - map: map_market_listed
+      - source: sf.ethereum.type.v1.Block
 
   - name: store_oracle
     kind: store
