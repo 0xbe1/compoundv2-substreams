@@ -197,6 +197,16 @@ fn store_market_token(market_listed_list: compound::MarketListedList, output: st
 }
 
 #[substreams::handlers::store]
+fn store_market_count(
+    market_listed_list: compound::MarketListedList,
+    output: store::StoreAddInt64,
+) {
+    for _ in market_listed_list.market_listed_list {
+        output.add(0, "market:count".to_string(), 1)
+    }
+}
+
+#[substreams::handlers::store]
 fn store_oracle(blk: eth::Block, output: store::StoreSet) {
     for trx in blk.transaction_traces {
         for log in trx.receipt.unwrap().logs.iter() {

@@ -50,6 +50,13 @@ modules:
     inputs:
       - map: map_market_listed
 
+  - name: store_market_count
+    kind: store
+    updatePolicy: add
+    valueType: int64
+    inputs:
+      - map: map_market_listed
+
   - name: store_oracle
     kind: store
     initialBlock: 7710671
