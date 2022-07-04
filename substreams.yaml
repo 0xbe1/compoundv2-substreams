@@ -76,7 +76,7 @@ modules:
   - name: store_mint
     kind: store
     updatePolicy: set
-    valueType: bytes
+    valueType: proto:compound.v1.Mint
     initialBlock: 7710671
     inputs:
       - map: map_mint
