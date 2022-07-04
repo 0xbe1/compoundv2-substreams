@@ -2,6 +2,8 @@
 
 Ongoing effort to index Compound V2 using substreams.
 
+## Architecture
+
 ```mermaid
 graph TD;
   map_accrue_interest[map: map_accrue_interest]
@@ -9,8 +11,12 @@ graph TD;
   map_mint[map: map_mint]
   sf.ethereum.type.v1.Block[source: sf.ethereum.type.v1.Block] --> map_mint
   store_price --> map_mint
-  store_market[store: store_market]
-  sf.ethereum.type.v1.Block[source: sf.ethereum.type.v1.Block] --> store_market
+  map_market_listed[map: map_market_listed]
+  sf.ethereum.type.v1.Block[source: sf.ethereum.type.v1.Block] --> map_market_listed
+  store_market_token[store: store_market_token]
+  map_market_listed --> store_market_token
+  store_market_count[store: store_market_count]
+  map_market_listed --> store_market_count
   store_oracle[store: store_oracle]
   sf.ethereum.type.v1.Block[source: sf.ethereum.type.v1.Block] --> store_oracle
   store_price[store: store_price]
