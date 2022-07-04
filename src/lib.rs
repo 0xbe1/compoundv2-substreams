@@ -93,6 +93,31 @@ fn map_mint(
     Ok(mint_list)
 }
 
+#[substreams::handlers::map]
+fn map_market_listed(
+    blk: eth::Block,
+) -> Result<compound::MarketListedList, substreams::errors::Error> {
+    let mut market_listed_list = compound::MarketListedList {
+        market_listed_list: vec![],
+    };
+    for trx in blk.transaction_traces {
+        for call in trx.calls.iter() {
+            for log in call.logs.iter() {
+                if !abi::comptroller::events::MarketListed::match_log(log) {
+                    continue;
+                }
+                let market_listed = abi::comptroller::events::MarketListed::must_decode(log);
+                market_listed_list
+                    .market_listed_list
+                    .push(compound::MarketListed {
+                        ctoken: market_listed.c_token,
+                    });
+            }
+        }
+    }
+    Ok(market_listed_list)
+}
+
 #[substreams::handlers::store]
 fn store_mint(mint_list: compound::MintList, output: store::StoreSet) {
     for mint in mint_list.mint_list {
@@ -101,83 +126,73 @@ fn store_mint(mint_list: compound::MintList, output: store::StoreSet) {
 }
 
 #[substreams::handlers::store]
-fn store_market(blk: eth::Block, output: store::StoreSet) {
-    for trx in blk.transaction_traces {
-        for call in trx.calls.iter() {
-            for log in call.logs.iter() {
-                if !abi::comptroller::events::MarketListed::match_log(log) {
-                    continue;
-                }
-                let market_listed = abi::comptroller::events::MarketListed::must_decode(log);
-                let ctoken_id = market_listed.c_token;
-                let is_ceth =
-                    ctoken_id == Hex::decode("4ddc2d193948926d02f9b1fe9e1daa0718270ed5").unwrap();
-                let is_csai =
-                    ctoken_id == Hex::decode("f5dce57282a584d2746faf1593d3121fcac444dc").unwrap();
+fn store_market_token(market_listed_list: compound::MarketListedList, output: store::StoreSet) {
+    for market_listed in market_listed_list.market_listed_list {
+        let ctoken_id = market_listed.ctoken;
+        let is_ceth = ctoken_id == Hex::decode("4ddc2d193948926d02f9b1fe9e1daa0718270ed5").unwrap();
+        let is_csai = ctoken_id == Hex::decode("f5dce57282a584d2746faf1593d3121fcac444dc").unwrap();
 
-                let ctoken_res = rpc::fetch_token(&ctoken_id);
-                if ctoken_res.is_err() {
-                    continue;
-                }
-                let ctoken = ctoken_res.unwrap();
-
-                let underlying_token_id_res: Result<Vec<u8>, String> = if is_ceth {
-                    Ok(NULL_ADDRESS.to_vec())
-                } else if is_csai {
-                    Ok(Hex::decode("89d24a6b4ccb1b6faa2625fe562bdd9a23260359").unwrap())
-                } else {
-                    rpc::fetch_underlying(&ctoken_id)
-                };
-                if underlying_token_id_res.is_err() {
-                    continue;
-                }
-                let underlying_token_id = underlying_token_id_res.unwrap();
-
-                let underlying_token_res = if is_ceth {
-                    Ok(compound::Token {
-                        id: address_pretty(&NULL_ADDRESS),
-                        name: "Ether".to_string(),
-                        symbol: "ETH".to_string(),
-                        decimals: 18,
-                    })
-                } else if is_csai {
-                    Ok(compound::Token {
-                        id: address_pretty(&hex!("89d24a6b4ccb1b6faa2625fe562bdd9a23260359")),
-                        name: "Sai Stablecoin v1.0 (SAI)".to_string(),
-                        symbol: "SAI".to_string(),
-                        decimals: 18,
-                    })
-                } else {
-                    rpc::fetch_token(&underlying_token_id)
-                };
-                if underlying_token_res.is_err() {
-                    continue;
-                }
-                let underlying_token = underlying_token_res.unwrap();
-
-                let market = compound::Market {
-                    id: ctoken.id.clone(),
-                    name: ctoken.name.clone(),
-                    input_token_id: underlying_token.id.clone(),
-                    output_token_id: ctoken.id.clone(),
-                };
-                output.set(
-                    0,
-                    format!("token:{}", ctoken.id.clone()),
-                    &proto::encode(&ctoken).unwrap(),
-                );
-                output.set(
-                    0,
-                    format!("token:{}", underlying_token.id.clone()),
-                    &proto::encode(&underlying_token).unwrap(),
-                );
-                output.set(
-                    0,
-                    format!("market:{}", ctoken.id.clone()),
-                    &proto::encode(&market).unwrap(),
-                )
-            }
+        let ctoken_res = rpc::fetch_token(&ctoken_id);
+        if ctoken_res.is_err() {
+            continue;
         }
+        let ctoken = ctoken_res.unwrap();
+
+        let underlying_token_id_res: Result<Vec<u8>, String> = if is_ceth {
+            Ok(NULL_ADDRESS.to_vec())
+        } else if is_csai {
+            Ok(Hex::decode("89d24a6b4ccb1b6faa2625fe562bdd9a23260359").unwrap())
+        } else {
+            rpc::fetch_underlying(&ctoken_id)
+        };
+        if underlying_token_id_res.is_err() {
+            continue;
+        }
+        let underlying_token_id = underlying_token_id_res.unwrap();
+
+        let underlying_token_res = if is_ceth {
+            Ok(compound::Token {
+                id: address_pretty(&NULL_ADDRESS),
+                name: "Ether".to_string(),
+                symbol: "ETH".to_string(),
+                decimals: 18,
+            })
+        } else if is_csai {
+            Ok(compound::Token {
+                id: address_pretty(&hex!("89d24a6b4ccb1b6faa2625fe562bdd9a23260359")),
+                name: "Sai Stablecoin v1.0 (SAI)".to_string(),
+                symbol: "SAI".to_string(),
+                decimals: 18,
+            })
+        } else {
+            rpc::fetch_token(&underlying_token_id)
+        };
+        if underlying_token_res.is_err() {
+            continue;
+        }
+        let underlying_token = underlying_token_res.unwrap();
+
+        let market = compound::Market {
+            id: ctoken.id.clone(),
+            name: ctoken.name.clone(),
+            input_token_id: underlying_token.id.clone(),
+            output_token_id: ctoken.id.clone(),
+        };
+        output.set(
+            0,
+            format!("token:{}", ctoken.id.clone()),
+            &proto::encode(&ctoken).unwrap(),
+        );
+        output.set(
+            0,
+            format!("token:{}", underlying_token.id.clone()),
+            &proto::encode(&underlying_token).unwrap(),
+        );
+        output.set(
+            0,
+            format!("market:{}", ctoken.id.clone()),
+            &proto::encode(&market).unwrap(),
+        )
     }
 }
 

@@ -47,3 +47,11 @@ message Mint {
   string mint_tokens = 4;
   string mint_amount_usd = 5;
 }
+
+message MarketListed {
+  bytes ctoken = 1;
+}
+
+message MarketListedList {
+  repeated MarketListed market_listed_list = 1;
+}

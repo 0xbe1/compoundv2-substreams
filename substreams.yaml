@@ -35,13 +35,20 @@ modules:
     output:
       type: proto:compound.v1.MintList
 
-  - name: store_market
-    kind: store
+  - name: map_market_listed
+    kind: map
     initialBlock: 7710671
+    inputs:
+      - source: sf.ethereum.type.v1.Block
+    output:
+      type: proto:compound.v1.MarketListedList
+
+  - name: store_market_token
+    kind: store
     updatePolicy: set
     valueType: bytes
     inputs:
-      - source: sf.ethereum.type.v1.Block
+      - map: map_market_listed
 
   - name: store_oracle
     kind: store
