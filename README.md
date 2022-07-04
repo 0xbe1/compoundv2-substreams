@@ -17,6 +17,8 @@ graph TD;
   map_market_listed --> store_market_token
   store_market_count[store: store_market_count]
   map_market_listed --> store_market_count
+  store_mint_count[store: store_mint_count]
+  map_mint --> store_mint_count
   store_oracle[store: store_oracle]
   sf.ethereum.type.v1.Block[source: sf.ethereum.type.v1.Block] --> store_oracle
   store_price[store: store_price]

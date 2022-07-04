@@ -46,6 +46,7 @@ message Mint {
   string mint_amount = 3;
   string mint_tokens = 4;
   string mint_amount_usd = 5;
+  int64 timestamp = 99;
 }
 
 message MarketListed {

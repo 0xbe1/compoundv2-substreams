@@ -22,8 +22,6 @@ fn map_accrue_interest(
     let mut accrue_interest_list: Vec<compound::AccrueInterest> = vec![];
     for trx in blk.transaction_traces {
         accrue_interest_list.extend(trx.receipt.unwrap().logs.iter().filter_map(|log| {
-            // TODO: filter by market id
-
             if !abi::ctoken::events::AccrueInterest::match_log(log) {
                 return None;
             }
@@ -72,6 +70,14 @@ fn map_mint(
             let mint_event = abi::ctoken::events::Mint::must_decode(log);
             let mint = compound::Mint {
                 id: format!("{}-{}", Hex::encode(&trx.hash), log.index),
+                timestamp: blk
+                    .header
+                    .as_ref()
+                    .unwrap()
+                    .timestamp
+                    .as_ref()
+                    .unwrap()
+                    .seconds,
                 minter: mint_event.minter,
                 mint_amount: mint_event.mint_amount.to_string(),
                 mint_tokens: mint_event.mint_tokens.to_string(),
@@ -192,6 +198,17 @@ fn store_market_token(market_listed_list: compound::MarketListedList, output: st
             0,
             format!("market:{}", ctoken.id.clone()),
             &proto::encode(&market).unwrap(),
+        )
+    }
+}
+
+#[substreams::handlers::store]
+fn store_mint_count(mint_list: compound::MintList, output: store::StoreAddInt64) {
+    for mint in mint_list.mint_list {
+        output.add(
+            0,
+            format!("mint:count:{}", mint.timestamp / (24 * 60 * 60)),
+            1,
         )
     }
 }
