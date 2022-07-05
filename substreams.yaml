@@ -31,6 +31,7 @@ modules:
     initialBlock: 7710671
     inputs:
       - source: sf.ethereum.type.v1.Block
+      - store: store_token
       - store: store_price
     output:
       type: proto:compound.v1.MintList
@@ -43,10 +44,10 @@ modules:
     output:
       type: proto:compound.v1.MarketListedList
 
-  - name: store_market_token
+  - name: store_token
     kind: store
     updatePolicy: set
-    valueType: bytes
+    valueType: proto:compound.v1.Token
     inputs:
       - map: map_market_listed
 
@@ -75,10 +76,11 @@ modules:
   - name: store_price
     kind: store
     updatePolicy: set
-    valueType: bytes
+    valueType: string
     inputs:
       - map: map_accrue_interest
       - store: store_oracle
+      - store: store_token
 
   - name: store_mint
     kind: store

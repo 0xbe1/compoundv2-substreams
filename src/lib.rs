@@ -5,10 +5,12 @@ mod pb;
 mod rpc;
 mod utils;
 
-use crate::utils::address_pretty;
+use crate::utils::{address_pretty, exponent_to_big_decimal};
+use bigdecimal::BigDecimal;
 use hex_literal::hex;
-use num_bigint::BigUint;
 use pb::compound;
+use std::ops::{Div, Mul};
+use std::str::FromStr;
 use substreams::{log, proto, store, Hex};
 use substreams_ethereum::pb::eth::v1 as eth;
 use substreams_ethereum::NULL_ADDRESS;
@@ -46,7 +48,8 @@ fn map_accrue_interest(
 #[substreams::handlers::map]
 fn map_mint(
     blk: eth::Block,
-    input: store::StoreGet,
+    store_token: store::StoreGet,
+    store_price: store::StoreGet,
 ) -> Result<compound::MintList, substreams::errors::Error> {
     let mut mint_list = compound::MintList { mint_list: vec![] };
     for trx in blk.transaction_traces {
@@ -55,33 +58,44 @@ fn map_mint(
                 continue;
             }
 
+            let market_address = &log.address;
             let mint_event = abi::ctoken::events::Mint::must_decode(log);
-            let mint = compound::Mint {
-                id: format!("{}-{}", Hex::encode(&trx.hash), log.index),
-                timestamp: blk
-                    .header
-                    .as_ref()
+            let underlying_price_res = store_price.get_last(&format!(
+                "market:{}:underlying:price",
+                address_pretty(market_address)
+            ));
+            let underlying_res = store_token.get_last(&format!(
+                "market:{}:underlying",
+                address_pretty(market_address)
+            ));
+            if let (Some(underlying_token), Some(underlying_price)) =
+                (underlying_res, underlying_price_res)
+            {
+                let price = utils::string_to_bigdecimal(underlying_price.as_ref());
+                let underlying_token: compound::Token = proto::decode(&underlying_token).unwrap();
+                let mint = compound::Mint {
+                    id: format!("{}-{}", Hex::encode(&trx.hash), log.index),
+                    timestamp: blk
+                        .header
+                        .as_ref()
+                        .unwrap()
+                        .timestamp
+                        .as_ref()
+                        .unwrap()
+                        .seconds,
+                    minter: mint_event.minter,
+                    mint_amount: mint_event.mint_amount.to_string(),
+                    mint_tokens: mint_event.mint_tokens.to_string(),
+                    mint_amount_usd: BigDecimal::from_str(
+                        mint_event.mint_amount.to_string().as_str(),
+                    )
                     .unwrap()
-                    .timestamp
-                    .as_ref()
-                    .unwrap()
-                    .seconds,
-                minter: mint_event.minter,
-                mint_amount: mint_event.mint_amount.to_string(),
-                mint_tokens: mint_event.mint_tokens.to_string(),
-                // TODO: calculate amount usd, it is only price now
-                mint_amount_usd: match input
-                    .get_last(&format!("token:{}:price", address_pretty(&log.address)))
-                {
-                    None => BigUint::default(),
-                    Some(price) => {
-                        // log::debug!("price {}", BigUint::from_bytes_be(&price));
-                        BigUint::from_bytes_be(&price)
-                    }
-                }
-                .to_string(),
-            };
-            mint_list.mint_list.push(mint);
+                    .div(exponent_to_big_decimal(underlying_token.decimals))
+                    .mul(price)
+                    .to_string(),
+                };
+                mint_list.mint_list.push(mint);
+            }
         }
     }
     Ok(mint_list)
@@ -120,7 +134,7 @@ fn store_mint(mint_list: compound::MintList, output: store::StoreSet) {
 }
 
 #[substreams::handlers::store]
-fn store_market_token(market_listed_list: compound::MarketListedList, output: store::StoreSet) {
+fn store_token(market_listed_list: compound::MarketListedList, output: store::StoreSet) {
     for market_listed in market_listed_list.market_listed_list {
         let ctoken_id = market_listed.ctoken;
         let is_ceth = ctoken_id == Hex::decode("4ddc2d193948926d02f9b1fe9e1daa0718270ed5").unwrap();
@@ -170,28 +184,16 @@ fn store_market_token(market_listed_list: compound::MarketListedList, output: st
             continue;
         }
         let underlying_token = underlying_token_res.unwrap();
-
-        let market = compound::Market {
-            id: ctoken.id.clone(),
-            name: ctoken.name.clone(),
-            input_token_id: underlying_token.id.clone(),
-            output_token_id: ctoken.id.clone(),
-        };
         output.set(
             0,
-            format!("token:{}", ctoken.id.clone()),
+            format!("market:{}:ctoken", ctoken.id.clone()),
             &proto::encode(&ctoken).unwrap(),
         );
         output.set(
             0,
-            format!("token:{}", underlying_token.id.clone()),
+            format!("market:{}:underlying", ctoken.id.clone()),
             &proto::encode(&underlying_token).unwrap(),
         );
-        output.set(
-            0,
-            format!("market:{}", ctoken.id.clone()),
-            &proto::encode(&market).unwrap(),
-        )
     }
 }
 
@@ -234,39 +236,51 @@ fn store_oracle(blk: eth::Block, output: store::StoreSet) {
     }
 }
 
+// TODO: interest accumulated -> protocol side revenue, supply side revenue
+
 #[substreams::handlers::store]
 fn store_price(
     accrue_interest_list: compound::AccrueInterestList,
-    input: store::StoreGet,
+    store_oracle: store::StoreGet,
+    store_token: store::StoreGet,
     output: store::StoreSet,
 ) {
     for accrue_interest in accrue_interest_list.accrue_interest_list {
-        let market = accrue_interest.address;
-        match input.get_last(&"protocol:oracle".to_string()) {
-            None => continue,
-            Some(oracle) => {
-                let method = if accrue_interest.block_number < 7710795 {
-                    "getPrice(address)".to_string()
-                } else {
-                    "getUnderlyingPrice(address)".to_string()
-                };
-                let price_res = rpc::fetch(rpc::RpcCallParams {
-                    to: oracle,
-                    method,
-                    args: vec![market.clone()],
-                })
-                .map(|x| BigUint::from_bytes_be(x.as_ref()));
-                if price_res.is_err() {
-                    log::info!(price_res.err().unwrap());
-                    continue;
-                }
-                // log::debug!(format!("price {}", price_res.as_ref().unwrap()));
-                output.set(
-                    0,
-                    format!("token:{}:price", address_pretty(&market)),
-                    &price_res.unwrap().to_bytes_be(),
-                )
+        let market_address = accrue_interest.address;
+        let oracle_res = store_oracle.get_last(&"protocol:oracle".to_string());
+        let underlying_res = store_token.get_last(&format!(
+            "market:{}:underlying",
+            address_pretty(&market_address)
+        ));
+        if let (Some(oracle), Some(underlying)) = (oracle_res, underlying_res) {
+            let underlying_token: compound::Token = proto::decode(&underlying).unwrap();
+            let method = if accrue_interest.block_number < 7710795 {
+                "getPrice(address)".to_string()
+            } else {
+                "getUnderlyingPrice(address)".to_string()
+            };
+            let price_mantissa_res = rpc::fetch(rpc::RpcCallParams {
+                to: oracle,
+                method,
+                args: vec![market_address.clone()],
+            })
+            .map(|x| utils::bytes_to_bigdecimal(x.as_ref()));
+            if price_mantissa_res.is_err() {
+                log::info!(price_mantissa_res.err().unwrap());
+                continue;
             }
+            let price = price_mantissa_res
+                .unwrap()
+                .div(exponent_to_big_decimal(18 - underlying_token.decimals + 18));
+            // TODO: price looks wrong
+            output.set(
+                0,
+                format!(
+                    "market:{}:underlying:price",
+                    address_pretty(&market_address)
+                ),
+                &Vec::from(price.to_string()),
+            )
         }
     }
 }

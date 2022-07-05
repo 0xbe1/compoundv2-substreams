@@ -7,7 +7,7 @@ use crate::{
     utils::{address_pretty, read_string, read_uint32},
 };
 
-// TODO: add transformer to Params
+// TODO: add transformer function to Params
 #[derive(Debug)]
 pub struct RpcCallParams {
     pub to: Vec<u8>,

@@ -111,6 +111,7 @@ name = "compoundv2-substreams"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "bigdecimal",
  "ethabi",
  "getrandom",
  "hex-literal",

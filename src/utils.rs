@@ -1,3 +1,8 @@
+use bigdecimal::{BigDecimal, One};
+use num_bigint::BigUint;
+use std::ops::Mul;
+use std::str;
+use std::str::FromStr;
 use substreams::Hex;
 use tiny_keccak::{Hasher, Keccak};
 
@@ -38,6 +43,23 @@ pub fn read_string(input: &[u8]) -> Result<String, String> {
     }
 
     Ok(String::from_utf8_lossy(&input[64..end]).to_string())
+}
+
+pub fn string_to_bigdecimal(input: &[u8]) -> BigDecimal {
+    return BigDecimal::from_str(str::from_utf8(input).unwrap()).unwrap();
+}
+
+pub fn bytes_to_bigdecimal(input: &[u8]) -> BigDecimal {
+    return BigDecimal::from_str(&BigUint::from_bytes_be(input).to_string()).unwrap();
+}
+
+pub fn exponent_to_big_decimal(decimals: u64) -> BigDecimal {
+    let mut result = BigDecimal::one();
+    let big_decimal_ten: &BigDecimal = &BigDecimal::from(10 as u64);
+    for _ in 0..decimals {
+        result = result.mul(big_decimal_ten);
+    }
+    return result;
 }
 
 // Construct rpc data according to https://docs.soliditylang.org/en/develop/abi-spec.html#examples
