@@ -1,4 +1,3 @@
-use num_bigint::BigUint;
 use substreams::Hex;
 use substreams_ethereum::{pb::eth, rpc};
 
@@ -8,30 +7,35 @@ use crate::{
     utils::{address_pretty, read_string, read_uint32},
 };
 
-pub fn fetch_token(addr: &Vec<u8>) -> Result<Token, String> {
-    let rpc_calls = eth::rpc::RpcCalls {
-        calls: vec![
-            eth::rpc::RpcCall {
-                to_addr: Vec::from(addr.clone()),
-                method_signature: rpc_data("decimals()", vec![]),
-            },
-            eth::rpc::RpcCall {
-                to_addr: Vec::from(addr.clone()),
-                method_signature: rpc_data("name()", vec![]),
-            },
-            eth::rpc::RpcCall {
-                to_addr: Vec::from(addr.clone()),
-                method_signature: rpc_data("symbol()", vec![]),
-            },
-        ],
-    };
+// TODO: add transformer to Params
+#[derive(Debug)]
+pub struct RpcCallParams {
+    pub to: Vec<u8>,
+    pub method: String,
+    pub args: Vec<Vec<u8>>,
+}
 
-    let responses = rpc::eth_call(&rpc_calls).responses;
-    if responses[0].failed || responses[1].failed || responses[2].failed {
-        return Err(format!("contract {} eth_call failed", Hex(addr)));
-    };
+pub fn fetch_token(addr: Vec<u8>) -> Result<Token, String> {
+    let responses = fetch(vec![
+        RpcCallParams {
+            to: addr.clone(),
+            method: "decimals()".to_string(),
+            args: vec![],
+        },
+        RpcCallParams {
+            to: addr.clone(),
+            method: "name()".to_string(),
+            args: vec![],
+        },
+        RpcCallParams {
+            to: addr.clone(),
+            method: "symbol()".to_string(),
+            args: vec![],
+        },
+    ]);
 
-    let decoded_decimals = read_uint32(responses[0].raw.as_ref());
+    // TODO: remove dangerous unwrap
+    let decoded_decimals = read_uint32(responses[0].clone().unwrap().as_ref());
     if decoded_decimals.is_err() {
         return Err(format!(
             "({}).decimal() decode failed: {}",
@@ -40,7 +44,7 @@ pub fn fetch_token(addr: &Vec<u8>) -> Result<Token, String> {
         ));
     }
 
-    let decoded_name = read_string(responses[1].raw.as_ref());
+    let decoded_name = read_string(responses[1].clone().unwrap().as_ref());
     if decoded_name.is_err() {
         return Err(format!(
             "({}).name() decode failed: {}",
@@ -49,7 +53,7 @@ pub fn fetch_token(addr: &Vec<u8>) -> Result<Token, String> {
         ));
     }
 
-    let decoded_symbol = read_string(responses[2].raw.as_ref());
+    let decoded_symbol = read_string(responses[2].clone().unwrap().as_ref());
     if decoded_symbol.is_err() {
         return Err(format!(
             "({}).symbol() decode failed: {}",
@@ -59,38 +63,38 @@ pub fn fetch_token(addr: &Vec<u8>) -> Result<Token, String> {
     }
 
     return Ok(Token {
-        id: address_pretty(addr),
+        id: address_pretty(&addr),
         name: decoded_name.unwrap(),
         symbol: decoded_symbol.unwrap(),
         decimals: decoded_decimals.unwrap() as u64,
     });
 }
 
-pub fn fetch_underlying(addr: &Vec<u8>) -> Result<Vec<u8>, String> {
+pub fn fetch(params: Vec<RpcCallParams>) -> Vec<Result<Vec<u8>, String>> {
     let rpc_calls = eth::rpc::RpcCalls {
-        calls: vec![eth::rpc::RpcCall {
-            to_addr: Vec::from(addr.clone()),
-            method_signature: rpc_data("underlying()", vec![]),
-        }],
+        calls: params
+            .iter()
+            .map(|p| eth::rpc::RpcCall {
+                to_addr: p.to.clone(),
+                method_signature: rpc_data(&p.method, &p.args),
+            })
+            .collect(),
     };
-    let responses = rpc::eth_call(&rpc_calls).responses;
-    if responses[0].failed {
-        return Err(format!("contract {} eth_call failed", Hex(addr)));
-    };
-    return Ok(responses[0].raw[12..32].to_vec());
+
+    return rpc::eth_call(&rpc_calls)
+        .responses
+        .iter()
+        .enumerate()
+        .map(|(i, r)| {
+            if r.failed {
+                Err(format!("eth_call failed: {:?}", params[i]))
+            } else {
+                Ok(r.raw.clone())
+            }
+        })
+        .collect();
 }
 
-pub fn fetch_price(oracle: &Vec<u8>, method: &str, market: &Vec<u8>) -> Result<BigUint, String> {
-    let rpc_calls = eth::rpc::RpcCalls {
-        calls: vec![eth::rpc::RpcCall {
-            to_addr: Vec::from(oracle.clone()),
-            method_signature: rpc_data(method, vec![market]),
-        }],
-    };
-
-    let responses = rpc::eth_call(&rpc_calls).responses;
-    if responses[0].failed {
-        return Err(format!("contract {} eth_call failed", Hex(oracle)));
-    };
-    return Ok(BigUint::from_bytes_be(responses[0].raw.as_ref()));
+pub fn fetch_one(param: RpcCallParams) -> Result<Vec<u8>, String> {
+    return fetch(vec![param]).into_iter().next().unwrap();
 }

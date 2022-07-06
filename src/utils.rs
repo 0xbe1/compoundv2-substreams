@@ -41,7 +41,7 @@ pub fn read_string(input: &[u8]) -> Result<String, String> {
 }
 
 // Construct rpc data according to https://docs.soliditylang.org/en/develop/abi-spec.html#examples
-pub fn rpc_data(method: &str, args: Vec<&Vec<u8>>) -> Vec<u8> {
+pub fn rpc_data(method: &str, args: &Vec<Vec<u8>>) -> Vec<u8> {
     let method_sig = method_signature(method);
     if args.len() == 0 {
         return method_sig;
