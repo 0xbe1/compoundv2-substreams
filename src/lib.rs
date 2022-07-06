@@ -137,7 +137,7 @@ fn store_market_token(market_listed_list: compound::MarketListedList, output: st
         } else if is_csai {
             Ok(Hex::decode("89d24a6b4ccb1b6faa2625fe562bdd9a23260359").unwrap())
         } else {
-            rpc::fetch_one(rpc::RpcCallParams {
+            rpc::fetch(rpc::RpcCallParams {
                 to: ctoken_id,
                 method: "underlying()".to_string(),
                 args: vec![],
@@ -250,7 +250,7 @@ fn store_price(
                 } else {
                     "getUnderlyingPrice(address)".to_string()
                 };
-                let price_res = rpc::fetch_one(rpc::RpcCallParams {
+                let price_res = rpc::fetch(rpc::RpcCallParams {
                     to: oracle,
                     method,
                     args: vec![market.clone()],

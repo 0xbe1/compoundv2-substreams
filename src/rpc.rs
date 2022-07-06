@@ -16,7 +16,7 @@ pub struct RpcCallParams {
 }
 
 pub fn fetch_token(addr: Vec<u8>) -> Result<Token, String> {
-    let responses = fetch(vec![
+    let responses = fetch_many(vec![
         RpcCallParams {
             to: addr.clone(),
             method: "decimals()".to_string(),
@@ -70,7 +70,7 @@ pub fn fetch_token(addr: Vec<u8>) -> Result<Token, String> {
     });
 }
 
-pub fn fetch(params: Vec<RpcCallParams>) -> Vec<Result<Vec<u8>, String>> {
+pub fn fetch_many(params: Vec<RpcCallParams>) -> Vec<Result<Vec<u8>, String>> {
     let rpc_calls = eth::rpc::RpcCalls {
         calls: params
             .iter()
@@ -95,6 +95,6 @@ pub fn fetch(params: Vec<RpcCallParams>) -> Vec<Result<Vec<u8>, String>> {
         .collect();
 }
 
-pub fn fetch_one(param: RpcCallParams) -> Result<Vec<u8>, String> {
-    return fetch(vec![param]).into_iter().next().unwrap();
+pub fn fetch(param: RpcCallParams) -> Result<Vec<u8>, String> {
+    return fetch_many(vec![param]).into_iter().next().unwrap();
 }
