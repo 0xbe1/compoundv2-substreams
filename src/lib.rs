@@ -29,23 +29,11 @@ fn map_accrue_interest(
             let accrue_interest = abi::ctoken::events::AccrueInterest::must_decode(log);
 
             Some(compound::AccrueInterest {
-                meta: Some(compound::EventMeta {
-                    address: log.address.clone(),
-                    txn_hash: trx.hash.clone(),
-                    log_index: log.index,
-                    block_number: blk.number,
-                    block_timestamp: blk
-                        .header
-                        .as_ref()
-                        .unwrap()
-                        .timestamp
-                        .as_ref()
-                        .unwrap()
-                        .seconds,
-                }),
                 interest_accumulated: accrue_interest.interest_accumulated.to_string(),
                 borrow_index: accrue_interest.borrow_index.to_string(),
                 total_borrows: accrue_interest.total_borrows.to_string(),
+                address: log.address.clone(),
+                block_number: blk.number,
             })
         }));
     }
@@ -138,7 +126,7 @@ fn store_market_token(market_listed_list: compound::MarketListedList, output: st
         let is_ceth = ctoken_id == Hex::decode("4ddc2d193948926d02f9b1fe9e1daa0718270ed5").unwrap();
         let is_csai = ctoken_id == Hex::decode("f5dce57282a584d2746faf1593d3121fcac444dc").unwrap();
 
-        let ctoken_res = rpc::fetch_token(&ctoken_id);
+        let ctoken_res = rpc::fetch_token(ctoken_id.clone());
         if ctoken_res.is_err() {
             continue;
         }
@@ -149,7 +137,12 @@ fn store_market_token(market_listed_list: compound::MarketListedList, output: st
         } else if is_csai {
             Ok(Hex::decode("89d24a6b4ccb1b6faa2625fe562bdd9a23260359").unwrap())
         } else {
-            rpc::fetch_underlying(&ctoken_id)
+            rpc::fetch_one(rpc::RpcCallParams {
+                to: ctoken_id,
+                method: "underlying()".to_string(),
+                args: vec![],
+            })
+            .map(|x| x[12..32].to_vec())
         };
         if underlying_token_id_res.is_err() {
             continue;
@@ -171,7 +164,7 @@ fn store_market_token(market_listed_list: compound::MarketListedList, output: st
                 decimals: 18,
             })
         } else {
-            rpc::fetch_token(&underlying_token_id)
+            rpc::fetch_token(underlying_token_id)
         };
         if underlying_token_res.is_err() {
             continue;
@@ -248,16 +241,21 @@ fn store_price(
     output: store::StoreSet,
 ) {
     for accrue_interest in accrue_interest_list.accrue_interest_list {
-        let market = &accrue_interest.meta.as_ref().unwrap().address;
+        let market = accrue_interest.address;
         match input.get_last(&"protocol:oracle".to_string()) {
             None => continue,
             Some(oracle) => {
-                let method = if accrue_interest.meta.as_ref().unwrap().block_number < 7710795 {
-                    "getPrice(address)"
+                let method = if accrue_interest.block_number < 7710795 {
+                    "getPrice(address)".to_string()
                 } else {
-                    "getUnderlyingPrice(address)"
+                    "getUnderlyingPrice(address)".to_string()
                 };
-                let price_res = rpc::fetch_price(&oracle, method, &market);
+                let price_res = rpc::fetch_one(rpc::RpcCallParams {
+                    to: oracle,
+                    method,
+                    args: vec![market.clone()],
+                })
+                .map(|x| BigUint::from_bytes_be(x.as_ref()));
                 if price_res.is_err() {
                     log::info!(price_res.err().unwrap());
                     continue;
