@@ -10,11 +10,12 @@ graph TD;
   sf.ethereum.type.v1.Block[source: sf.ethereum.type.v1.Block] --> map_accrue_interest
   map_mint[map: map_mint]
   sf.ethereum.type.v1.Block[source: sf.ethereum.type.v1.Block] --> map_mint
+  store_token --> map_mint
   store_price --> map_mint
   map_market_listed[map: map_market_listed]
   sf.ethereum.type.v1.Block[source: sf.ethereum.type.v1.Block] --> map_market_listed
-  store_market_token[store: store_market_token]
-  map_market_listed --> store_market_token
+  store_token[store: store_token]
+  map_market_listed --> store_token
   store_market_count[store: store_market_count]
   map_market_listed --> store_market_count
   store_mint_count[store: store_mint_count]
@@ -24,8 +25,9 @@ graph TD;
   store_price[store: store_price]
   map_accrue_interest --> store_price
   store_oracle --> store_price
-  store_mint[store: store_mint]
-  map_mint --> store_mint
+  store_token --> store_price
+  store_mint_event[store: store_mint_event]
+  map_mint --> store_mint_event
 ```
 
 ## Quick Start
