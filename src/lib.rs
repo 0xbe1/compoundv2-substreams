@@ -156,7 +156,7 @@ fn store_token(market_listed_list: compound::MarketListedList, output: store::St
             Ok(Hex::decode("89d24a6b4ccb1b6faa2625fe562bdd9a23260359").unwrap())
         } else {
             rpc::fetch(rpc::RpcCallParams {
-                to: ctoken_id,
+                to: ctoken_id.clone(),
                 method: "underlying()".to_string(),
                 args: vec![],
             })
@@ -169,14 +169,14 @@ fn store_token(market_listed_list: compound::MarketListedList, output: store::St
 
         let underlying_token_res = if is_ceth {
             Ok(compound::Token {
-                id: address_pretty(&NULL_ADDRESS),
+                id: NULL_ADDRESS.to_vec(),
                 name: "Ether".to_string(),
                 symbol: "ETH".to_string(),
                 decimals: 18,
             })
         } else if is_csai {
             Ok(compound::Token {
-                id: address_pretty(&hex!("89d24a6b4ccb1b6faa2625fe562bdd9a23260359")),
+                id: Hex::decode("89d24a6b4ccb1b6faa2625fe562bdd9a23260359").unwrap(),
                 name: "Sai Stablecoin v1.0 (SAI)".to_string(),
                 symbol: "SAI".to_string(),
                 decimals: 18,
@@ -190,12 +190,12 @@ fn store_token(market_listed_list: compound::MarketListedList, output: store::St
         let underlying_token = underlying_token_res.unwrap();
         output.set(
             0,
-            format!("market:{}:ctoken", ctoken.id.clone()),
+            format!("market:{}:ctoken", Hex::encode(ctoken_id.clone())),
             &proto::encode(&ctoken).unwrap(),
         );
         output.set(
             0,
-            format!("market:{}:underlying", ctoken.id.clone()),
+            format!("market:{}:underlying", Hex::encode(ctoken_id.clone())),
             &proto::encode(&underlying_token).unwrap(),
         );
     }

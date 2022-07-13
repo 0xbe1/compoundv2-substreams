@@ -63,7 +63,7 @@ pub fn fetch_token(addr: Vec<u8>) -> Result<Token, String> {
     }
 
     return Ok(Token {
-        id: address_pretty(&addr),
+        id: addr,
         name: decoded_name.unwrap(),
         symbol: decoded_symbol.unwrap(),
         decimals: decoded_decimals.unwrap() as u64,
