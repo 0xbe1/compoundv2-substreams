@@ -74,7 +74,7 @@ fn map_mint(
                 let price = utils::string_to_bigdecimal(underlying_price.as_ref());
                 let underlying_token: compound::Token = proto::decode(&underlying_token).unwrap();
                 let mint = compound::Mint {
-                    id: format!("{}-{}", Hex::encode(&trx.hash), log.index),
+                    id: format!("{}-{}", Hex::encode(&trx.hash), log.index).into_bytes(),
                     timestamp: blk
                         .header
                         .as_ref()
@@ -127,9 +127,13 @@ fn map_market_listed(
 }
 
 #[substreams::handlers::store]
-fn store_mint(mint_list: compound::MintList, output: store::StoreSet) {
+fn store_mint_event(mint_list: compound::MintList, output: store::StoreSet) {
     for mint in mint_list.mint_list {
-        output.set(0, mint.id.clone(), &proto::encode(&mint).unwrap());
+        output.set(
+            0,
+            String::from_utf8(mint.id.clone()).unwrap(),
+            &proto::encode(&mint).unwrap(),
+        );
     }
 }
 

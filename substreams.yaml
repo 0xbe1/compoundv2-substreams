@@ -82,7 +82,7 @@ modules:
       - store: store_oracle
       - store: store_token
 
-  - name: store_mint
+  - name: store_mint_event
     kind: store
     updatePolicy: set
     valueType: proto:compound.v1.Mint
