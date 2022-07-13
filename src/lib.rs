@@ -7,7 +7,6 @@ mod utils;
 
 use crate::utils::exponent_to_big_decimal;
 use bigdecimal::BigDecimal;
-use hex_literal::hex;
 use pb::compound;
 use std::ops::{Div, Mul};
 use std::str::FromStr;
