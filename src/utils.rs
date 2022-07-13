@@ -1,6 +1,7 @@
-use bigdecimal::{BigDecimal, One};
+use crate::rpc;
+use bigdecimal::{BigDecimal, One, Zero};
 use num_bigint::BigUint;
-use std::ops::Mul;
+use std::ops::{Div, Mul};
 use std::str;
 use std::str::FromStr;
 use substreams::Hex;
@@ -45,6 +46,8 @@ pub fn string_to_bigdecimal(input: &[u8]) -> BigDecimal {
     return BigDecimal::from_str(str::from_utf8(input).unwrap()).unwrap();
 }
 
+// TODO: remove BigUint dependency
+// BigDecimal::from_str(str::from_utf8(price_bytes.as_slice()).unwrap()).unwrap().with_prec(100)
 pub fn bytes_to_bigdecimal(input: &[u8]) -> BigDecimal {
     return BigDecimal::from_str(&BigUint::from_bytes_be(input).to_string()).unwrap();
 }
@@ -81,4 +84,87 @@ fn method_signature(method: &str) -> Vec<u8> {
     keccak.update(&Vec::from(method));
     keccak.finalize(&mut output);
     return output[..4].to_vec();
+}
+
+// Based on official subgraph of Compound V2 https://github.com/graphprotocol/compound-v2-subgraph/blob/master/src/mappings/markets.ts
+// The result could mean either eth or usd, depending on the block_number
+// We delegate the check to get_underlying_price_usd
+// TODO: consider removing getPrice given it always return 0 for block_number < 7710795
+fn get_underlying_price_eth_or_usd(
+    ctoken_address: Vec<u8>,
+    underlying_address: Vec<u8>,
+    oracle: Vec<u8>,
+    block_number: u64,
+    underlying_decimals: u64,
+) -> Result<BigDecimal, String> {
+    if block_number < 7710795 {
+        // oracle gains new schema from this block on
+        rpc::fetch(rpc::RpcCallParams {
+            to: oracle,
+            method: "getPrice(address)".to_string(),
+            args: vec![underlying_address],
+        })
+        .map(|x| bytes_to_bigdecimal(x.as_ref()).div(exponent_to_big_decimal(18)))
+    } else {
+        rpc::fetch(rpc::RpcCallParams {
+            to: oracle,
+            method: "getUnderlyingPrice(address)".to_string(),
+            args: vec![ctoken_address],
+        })
+        .map(|x| {
+            bytes_to_bigdecimal(x.as_ref())
+                .div(exponent_to_big_decimal(18 - underlying_decimals + 18))
+        })
+    }
+}
+
+// Based on official subgraph of Compound V2 https://github.com/graphprotocol/compound-v2-subgraph/blob/master/src/mappings/markets.ts
+// Rule 1: after block 10678764 price is calculated based on USD instead of ETH
+// Rule 2: use sai until usdc is listed in the market
+pub fn get_underlying_price_usd(
+    ctoken_address: Vec<u8>,
+    underlying_address: Vec<u8>,
+    oracle: Vec<u8>,
+    block_number: u64,
+    underlying_decimals: u64,
+) -> Result<BigDecimal, String> {
+    let price_res = get_underlying_price_eth_or_usd(
+        ctoken_address,
+        underlying_address,
+        oracle.clone(),
+        block_number,
+        underlying_decimals,
+    );
+    if block_number > 10678764 {
+        price_res
+    } else {
+        price_res.and_then(|token_price_eth| {
+            if block_number < 7715827 {
+                // use sai until usdc is listed in the market
+                get_underlying_price_eth_or_usd(
+                    Hex::decode("f5dce57282a584d2746faf1593d3121fcac444dc").unwrap(),
+                    Hex::decode("89d24a6b4ccb1b6faa2625fe562bdd9a23260359").unwrap(),
+                    oracle,
+                    block_number,
+                    18,
+                )
+            } else {
+                // usdc
+                get_underlying_price_eth_or_usd(
+                    Hex::decode("39aa39c021dfbae8fac545936693ac917d5e7563").unwrap(),
+                    Hex::decode("a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48").unwrap(),
+                    oracle,
+                    block_number,
+                    6,
+                )
+            }
+            .map(|stablecoin_price_eth| {
+                if stablecoin_price_eth.is_zero() {
+                    BigDecimal::zero()
+                } else {
+                    token_price_eth.div(stablecoin_price_eth)
+                }
+            })
+        })
+    }
 }

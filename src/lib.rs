@@ -5,12 +5,11 @@ mod pb;
 mod rpc;
 mod utils;
 
-use crate::utils::exponent_to_big_decimal;
 use bigdecimal::BigDecimal;
 use pb::compound;
 use std::ops::{Div, Mul};
 use std::str::FromStr;
-use substreams::{log, proto, store, Hex};
+use substreams::{proto, store, Hex};
 use substreams_ethereum::pb::eth::v1 as eth;
 use substreams_ethereum::NULL_ADDRESS;
 
@@ -89,7 +88,7 @@ fn map_mint(
                         mint_event.mint_amount.to_string().as_str(),
                     )
                     .unwrap()
-                    .div(exponent_to_big_decimal(underlying_token.decimals))
+                    .div(utils::exponent_to_big_decimal(underlying_token.decimals))
                     .mul(price)
                     .to_string(),
                 };
@@ -257,29 +256,20 @@ fn store_price(
         ));
         if let (Some(oracle), Some(underlying)) = (oracle_res, underlying_res) {
             let underlying_token: compound::Token = proto::decode(&underlying).unwrap();
-            let method = if accrue_interest.block_number < 7710795 {
-                "getPrice(address)".to_string()
-            } else {
-                "getUnderlyingPrice(address)".to_string()
-            };
-            let price_mantissa_res = rpc::fetch(rpc::RpcCallParams {
-                to: oracle,
-                method,
-                args: vec![market_address.clone()],
-            })
-            .map(|x| utils::bytes_to_bigdecimal(x.as_ref()));
-            if price_mantissa_res.is_err() {
-                log::info!(price_mantissa_res.err().unwrap());
+            let price_usd_res = utils::get_underlying_price_usd(
+                market_address.clone(),
+                underlying_token.id,
+                oracle,
+                accrue_interest.block_number,
+                underlying_token.decimals,
+            );
+            if price_usd_res.is_err() {
                 continue;
             }
-            let price = price_mantissa_res
-                .unwrap()
-                .div(exponent_to_big_decimal(18 - underlying_token.decimals + 18));
-            // TODO: price looks wrong
             output.set(
                 0,
                 format!("market:{}:underlying:price", Hex::encode(&market_address)),
-                &Vec::from(price.to_string()),
+                &Vec::from(price_usd_res.unwrap().to_string()),
             )
         }
     }
