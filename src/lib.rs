@@ -5,7 +5,7 @@ mod pb;
 mod rpc;
 mod utils;
 
-use crate::utils::{address_pretty, exponent_to_big_decimal};
+use crate::utils::exponent_to_big_decimal;
 use bigdecimal::BigDecimal;
 use hex_literal::hex;
 use pb::compound;
@@ -62,11 +62,11 @@ fn map_mint(
             let mint_event = abi::ctoken::events::Mint::must_decode(log);
             let underlying_price_res = store_price.get_last(&format!(
                 "market:{}:underlying:price",
-                address_pretty(market_address)
+                Hex::encode(market_address)
             ));
             let underlying_res = store_token.get_last(&format!(
                 "market:{}:underlying",
-                address_pretty(market_address)
+                Hex::encode(market_address)
             ));
             if let (Some(underlying_token), Some(underlying_price)) =
                 (underlying_res, underlying_price_res)
@@ -254,7 +254,7 @@ fn store_price(
         let oracle_res = store_oracle.get_last(&"protocol:oracle".to_string());
         let underlying_res = store_token.get_last(&format!(
             "market:{}:underlying",
-            address_pretty(&market_address)
+            Hex::encode(&market_address)
         ));
         if let (Some(oracle), Some(underlying)) = (oracle_res, underlying_res) {
             let underlying_token: compound::Token = proto::decode(&underlying).unwrap();
@@ -279,10 +279,7 @@ fn store_price(
             // TODO: price looks wrong
             output.set(
                 0,
-                format!(
-                    "market:{}:underlying:price",
-                    address_pretty(&market_address)
-                ),
+                format!("market:{}:underlying:price", Hex::encode(&market_address)),
                 &Vec::from(price.to_string()),
             )
         }

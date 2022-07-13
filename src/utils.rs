@@ -6,10 +6,6 @@ use std::str::FromStr;
 use substreams::Hex;
 use tiny_keccak::{Hasher, Keccak};
 
-pub fn address_pretty(input: &[u8]) -> String {
-    format!("0x{}", Hex::encode(input))
-}
-
 pub fn read_uint32(input: &[u8]) -> Result<u32, String> {
     if input.len() != 32 {
         return Err(format!("uint32 invalid length: {}", input.len()));

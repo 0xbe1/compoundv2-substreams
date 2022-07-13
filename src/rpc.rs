@@ -4,7 +4,7 @@ use substreams_ethereum::{pb::eth, rpc};
 use crate::utils::rpc_data;
 use crate::{
     pb::compound::Token,
-    utils::{address_pretty, read_string, read_uint32},
+    utils::{read_string, read_uint32},
 };
 
 // TODO: add transformer function to Params
