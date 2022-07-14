@@ -14,8 +14,6 @@ use substreams::{proto, store, Hex};
 use substreams_ethereum::pb::eth::v1 as eth;
 use substreams_ethereum::NULL_ADDRESS;
 
-substreams_ethereum::init!();
-
 #[substreams::handlers::map]
 fn map_accrue_interest(
     blk: eth::Block,

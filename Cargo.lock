@@ -113,7 +113,6 @@ dependencies = [
  "anyhow",
  "bigdecimal",
  "ethabi",
- "getrandom",
  "num-bigint",
  "prost",
  "substreams",
