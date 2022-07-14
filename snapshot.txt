@@ -1,5 +1,0 @@
-wrap {Module:store_oracle BlockNum:7710677 Deltas:[{Operation:CREATE Ordinal:0 Key:protocol:oracle OldValue:[] NewValue:[40 104 101 120 41 32 48 50 53 53 55 97 53 101 48 53 100 101 102 101 102 102 100 52 99 97 101 54 100 56 51 101 97 51 100 49 55 51 98 50 55 50 99 57 48 52]}]}
-RETURN HANDLER ERROR: print json deltas: marshal wrap: json: error calling MarshalJSON for type json.RawMessage: invalid character '(' looking for beginning of value
-wrap {Module:store_oracle BlockNum:7710794 Deltas:[{Operation:UPDATE Ordinal:0 Key:protocol:oracle OldValue:[40 104 101 120 41 32 48 50 53 53 55 97 53 101 48 53 100 101 102 101 102 102 100 52 99 97 101 54 100 56 51 101 97 51 100 49 55 51 98 50 55 50 99 57 48 52] NewValue:[40 104 101 120 41 32 50 56 102 56 50 57 102 52 55 51 54 51 56 98 97 56 50 55 49 48 99 56 52 48 52 97 55 55 56 102 57 97 54 54 48 50 57 97 97 100]}]}
-RETURN HANDLER ERROR: print json deltas: marshal wrap: json: error calling MarshalJSON for type json.RawMessage: invalid character '(' looking for beginning of value
-all done
