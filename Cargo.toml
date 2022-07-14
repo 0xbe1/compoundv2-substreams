@@ -12,14 +12,14 @@ crate-type = ["cdylib"]
 ethabi = "17.0"
 prost = "0.10.1"
 tiny-keccak = { version = "2.0", features = ["keccak"] }
-substreams = "0.0.12"
-substreams-ethereum = { git = "https://github.com/streamingfast/substreams-ethereum", branch = "feature/fix_version_12" }
+substreams = { git = "https://github.com/streamingfast/substreams/", branch = "develop" }
+substreams-ethereum = { git = "https://github.com/0xbe1/substreams-ethereum", branch = "feature/fix-version-develop" }
 num-bigint = "0.4"
 bigdecimal = "0.3.0"
 
 [build-dependencies]
 anyhow = "1"
-substreams-ethereum = { git = "https://github.com/streamingfast/substreams-ethereum", branch = "feature/fix_version_12" }
+substreams-ethereum = { git = "https://github.com/0xbe1/substreams-ethereum", branch = "feature/fix-version-develop" }
 
 [profile.release]
 lto = true
