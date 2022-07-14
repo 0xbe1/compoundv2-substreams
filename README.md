@@ -26,8 +26,12 @@ graph TD;
   map_accrue_interest --> store_price
   store_oracle --> store_price
   store_token --> store_price
-  store_mint_event[store: store_mint_event]
-  map_mint --> store_mint_event
+  store_tvl[store: store_tvl]
+  map_accrue_interest --> store_tvl
+  store_token --> store_tvl
+  store_price --> store_tvl
+  store_mint[store: store_mint]
+  map_mint --> store_mint
 ```
 
 ## Quick Start
