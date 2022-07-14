@@ -82,6 +82,15 @@ modules:
       - store: store_oracle
       - store: store_token
 
+  - name: store_tvl
+    kind: store
+    updatePolicy: set
+    valueType: string
+    inputs:
+      - map: map_accrue_interest
+      - store: store_token
+      - store: store_price
+
   - name: store_mint_event
     kind: store
     updatePolicy: set

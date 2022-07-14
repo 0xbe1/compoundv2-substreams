@@ -7,6 +7,9 @@ use std::str::FromStr;
 use substreams::Hex;
 use tiny_keccak::{Hasher, Keccak};
 
+pub const MANTISSA_FACTOR: u64 = 18;
+pub const CTOKEN_DECIMALS: u64 = 8;
+
 pub fn read_uint32(input: &[u8]) -> Result<u32, String> {
     if input.len() != 32 {
         return Err(format!("uint32 invalid length: {}", input.len()));

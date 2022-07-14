@@ -5,6 +5,7 @@ mod pb;
 mod rpc;
 mod utils;
 
+use crate::utils::exponent_to_big_decimal;
 use bigdecimal::BigDecimal;
 use pb::compound;
 use std::ops::{Div, Mul};
@@ -139,8 +140,8 @@ fn store_mint_event(mint_list: compound::MintList, output: store::StoreSet) {
 fn store_token(market_listed_list: compound::MarketListedList, output: store::StoreSet) {
     for market_listed in market_listed_list.market_listed_list {
         let ctoken_id = market_listed.ctoken;
-        // handle eth and sai differently because
-        // eth and sai (89d24a6b4ccb1b6faa2625fe562bdd9a23260359) are NOT ERC20 tokens
+        // handle eth and sai differently
+        // because eth and sai (89d24a6b4ccb1b6faa2625fe562bdd9a23260359) are NOT ERC20 tokens
         let is_ceth = ctoken_id == Hex::decode("4ddc2d193948926d02f9b1fe9e1daa0718270ed5").unwrap();
         let is_csai = ctoken_id == Hex::decode("f5dce57282a584d2746faf1593d3121fcac444dc").unwrap();
 
@@ -260,6 +261,65 @@ fn store_price(
                 0,
                 format!("market:{}:underlying:price", Hex::encode(&market_address)),
                 &Vec::from(price_usd_res.unwrap().to_string()),
+            )
+        }
+    }
+}
+
+#[substreams::handlers::store]
+fn store_tvl(
+    accrue_interest_list: compound::AccrueInterestList,
+    store_token: store::StoreGet,
+    store_price: store::StoreGet,
+    output: store::StoreSet,
+) {
+    for accrue_interest in accrue_interest_list.accrue_interest_list {
+        let market_address = accrue_interest.address;
+        let underlying_res: Option<compound::Token> = store_token
+            .get_last(&format!(
+                "market:{}:underlying",
+                Hex::encode(&market_address)
+            ))
+            .map(|x| proto::decode(&x).unwrap());
+        let underlying_price_res = store_price
+            .get_last(&format!(
+                "market:{}:underlying:price",
+                Hex::encode(&market_address)
+            ))
+            .map(|x| utils::string_to_bigdecimal(x.as_ref()));
+        let ctoken_supply_res = rpc::fetch(rpc::RpcCallParams {
+            to: market_address.clone(),
+            method: "totalSupply()".to_string(),
+            args: vec![],
+        })
+        .map(|x| utils::bytes_to_bigdecimal(x.as_ref()));
+        let ctoken_exchange_rate_res = rpc::fetch(rpc::RpcCallParams {
+            to: market_address.clone(),
+            method: "exchangeRateStored()".to_string(),
+            args: vec![],
+        })
+        .map(|x| utils::bytes_to_bigdecimal(x.as_ref()));
+        if let (
+            Some(underlying),
+            Some(underlying_price),
+            Ok(ctoken_supply),
+            Ok(ctoken_exchange_rate),
+        ) = (
+            underlying_res,
+            underlying_price_res,
+            ctoken_supply_res,
+            ctoken_exchange_rate_res,
+        ) {
+            let total_value_locked = ctoken_supply
+                .mul(ctoken_exchange_rate)
+                .div(exponent_to_big_decimal(
+                    utils::MANTISSA_FACTOR + underlying.decimals,
+                ))
+                .mul(underlying_price);
+            output.set(
+                0,
+                format!("market:{}:tvl", Hex::encode(&market_address)),
+                &Vec::from(total_value_locked.to_string()),
             )
         }
     }
