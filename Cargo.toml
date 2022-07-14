@@ -13,7 +13,7 @@ ethabi = "17.0"
 prost = "0.10.1"
 tiny-keccak = { version = "2.0", features = ["keccak"] }
 # Use latest from https://crates.io/crates/substreams
-substreams = "0.0.11"
+substreams = "0.0.12"
 # Use latest from https://crates.io/crates/substreams-ethereum
 substreams-ethereum = "0.1.4"
 num-bigint = "0.4"

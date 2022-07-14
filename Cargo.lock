@@ -116,7 +116,7 @@ dependencies = [
  "getrandom",
  "num-bigint",
  "prost",
- "substreams",
+ "substreams 0.0.12",
  "substreams-ethereum",
  "tiny-keccak",
 ]
@@ -723,7 +723,24 @@ dependencies = [
  "prost",
  "prost-build",
  "prost-types",
- "substreams-macro",
+ "substreams-macro 0.0.11",
+ "thiserror",
+]
+
+[[package]]
+name = "substreams"
+version = "0.0.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2cf0b1354a0212595433c76be5c419111253f826fe6030e3a01f90054d2d541e"
+dependencies = [
+ "bigdecimal",
+ "hex",
+ "hex-literal",
+ "num-bigint",
+ "prost",
+ "prost-build",
+ "prost-types",
+ "substreams-macro 0.0.12",
  "thiserror",
 ]
 
@@ -738,7 +755,7 @@ dependencies = [
  "prost",
  "prost-build",
  "prost-types",
- "substreams",
+ "substreams 0.0.11",
  "substreams-ethereum-abigen",
  "substreams-ethereum-derive",
 ]
@@ -780,6 +797,18 @@ name = "substreams-macro"
 version = "0.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6f0db235f75c362557d3ce78c481535b51a688e189a030dc2d8610d8b6526a20"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+ "thiserror",
+]
+
+[[package]]
+name = "substreams-macro"
+version = "0.0.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f98d38372efa37bdfd7e071092f4f4dcdcaed5dc5e7290b0362a56081474867"
 dependencies = [
  "proc-macro2",
  "quote",
