@@ -66,8 +66,9 @@
                         log.data.as_ref(),
                     )
                     .map_err(|e| format!("unable to decode log.data: {}", e))?;
+                values.reverse();
                 Ok(Self {
-                    total_borrows: values
+                    interest_accumulated: values
                         .pop()
                         .expect(INTERNAL_ERR)
                         .into_uint()
@@ -77,7 +78,7 @@
                         .expect(INTERNAL_ERR)
                         .into_uint()
                         .expect(INTERNAL_ERR),
-                    interest_accumulated: values
+                    total_borrows: values
                         .pop()
                         .expect(INTERNAL_ERR)
                         .into_uint()
@@ -152,6 +153,7 @@
                         log.data.as_ref(),
                     )
                     .map_err(|e| format!("unable to decode log.data: {}", e))?;
+                values.reverse();
                 Ok(Self {
                     owner: ethabi::decode(
                             &[ethabi::ParamType::Address],
@@ -164,7 +166,7 @@
                         .pop()
                         .expect(INTERNAL_ERR)
                         .into_address()
-                        .expect(INTERNAL_ERR)
+                        .unwrap()
                         .as_bytes()
                         .to_vec(),
                     spender: ethabi::decode(
@@ -178,7 +180,7 @@
                         .pop()
                         .expect(INTERNAL_ERR)
                         .into_address()
-                        .expect(INTERNAL_ERR)
+                        .unwrap()
                         .as_bytes()
                         .to_vec(),
                     amount: values
@@ -260,8 +262,16 @@
                         log.data.as_ref(),
                     )
                     .map_err(|e| format!("unable to decode log.data: {}", e))?;
+                values.reverse();
                 Ok(Self {
-                    total_borrows: values
+                    borrower: values
+                        .pop()
+                        .expect(INTERNAL_ERR)
+                        .into_address()
+                        .unwrap()
+                        .as_bytes()
+                        .to_vec(),
+                    borrow_amount: values
                         .pop()
                         .expect(INTERNAL_ERR)
                         .into_uint()
@@ -271,18 +281,11 @@
                         .expect(INTERNAL_ERR)
                         .into_uint()
                         .expect(INTERNAL_ERR),
-                    borrow_amount: values
+                    total_borrows: values
                         .pop()
                         .expect(INTERNAL_ERR)
                         .into_uint()
                         .expect(INTERNAL_ERR),
-                    borrower: values
-                        .pop()
-                        .expect(INTERNAL_ERR)
-                        .into_address()
-                        .expect(INTERNAL_ERR)
-                        .as_bytes()
-                        .to_vec(),
                 })
             }
             pub fn must_decode(log: &substreams_ethereum::pb::eth::v1::Log) -> Self {
@@ -355,8 +358,9 @@
                         log.data.as_ref(),
                     )
                     .map_err(|e| format!("unable to decode log.data: {}", e))?;
+                values.reverse();
                 Ok(Self {
-                    detail: values
+                    error: values
                         .pop()
                         .expect(INTERNAL_ERR)
                         .into_uint()
@@ -366,7 +370,7 @@
                         .expect(INTERNAL_ERR)
                         .into_uint()
                         .expect(INTERNAL_ERR),
-                    error: values
+                    detail: values
                         .pop()
                         .expect(INTERNAL_ERR)
                         .into_uint()
@@ -447,8 +451,23 @@
                         log.data.as_ref(),
                     )
                     .map_err(|e| format!("unable to decode log.data: {}", e))?;
+                values.reverse();
                 Ok(Self {
-                    seize_tokens: values
+                    liquidator: values
+                        .pop()
+                        .expect(INTERNAL_ERR)
+                        .into_address()
+                        .unwrap()
+                        .as_bytes()
+                        .to_vec(),
+                    borrower: values
+                        .pop()
+                        .expect(INTERNAL_ERR)
+                        .into_address()
+                        .unwrap()
+                        .as_bytes()
+                        .to_vec(),
+                    repay_amount: values
                         .pop()
                         .expect(INTERNAL_ERR)
                         .into_uint()
@@ -457,28 +476,14 @@
                         .pop()
                         .expect(INTERNAL_ERR)
                         .into_address()
-                        .expect(INTERNAL_ERR)
+                        .unwrap()
                         .as_bytes()
                         .to_vec(),
-                    repay_amount: values
+                    seize_tokens: values
                         .pop()
                         .expect(INTERNAL_ERR)
                         .into_uint()
                         .expect(INTERNAL_ERR),
-                    borrower: values
-                        .pop()
-                        .expect(INTERNAL_ERR)
-                        .into_address()
-                        .expect(INTERNAL_ERR)
-                        .as_bytes()
-                        .to_vec(),
-                    liquidator: values
-                        .pop()
-                        .expect(INTERNAL_ERR)
-                        .into_address()
-                        .expect(INTERNAL_ERR)
-                        .as_bytes()
-                        .to_vec(),
                 })
             }
             pub fn must_decode(log: &substreams_ethereum::pb::eth::v1::Log) -> Self {
@@ -553,24 +558,25 @@
                         log.data.as_ref(),
                     )
                     .map_err(|e| format!("unable to decode log.data: {}", e))?;
+                values.reverse();
                 Ok(Self {
-                    mint_tokens: values
+                    minter: values
                         .pop()
                         .expect(INTERNAL_ERR)
-                        .into_uint()
-                        .expect(INTERNAL_ERR),
+                        .into_address()
+                        .unwrap()
+                        .as_bytes()
+                        .to_vec(),
                     mint_amount: values
                         .pop()
                         .expect(INTERNAL_ERR)
                         .into_uint()
                         .expect(INTERNAL_ERR),
-                    minter: values
+                    mint_tokens: values
                         .pop()
                         .expect(INTERNAL_ERR)
-                        .into_address()
-                        .expect(INTERNAL_ERR)
-                        .as_bytes()
-                        .to_vec(),
+                        .into_uint()
+                        .expect(INTERNAL_ERR),
                 })
             }
             pub fn must_decode(log: &substreams_ethereum::pb::eth::v1::Log) -> Self {
@@ -638,19 +644,20 @@
                         log.data.as_ref(),
                     )
                     .map_err(|e| format!("unable to decode log.data: {}", e))?;
+                values.reverse();
                 Ok(Self {
-                    new_admin: values
-                        .pop()
-                        .expect(INTERNAL_ERR)
-                        .into_address()
-                        .expect(INTERNAL_ERR)
-                        .as_bytes()
-                        .to_vec(),
                     old_admin: values
                         .pop()
                         .expect(INTERNAL_ERR)
                         .into_address()
+                        .unwrap()
+                        .as_bytes()
+                        .to_vec(),
+                    new_admin: values
+                        .pop()
                         .expect(INTERNAL_ERR)
+                        .into_address()
+                        .unwrap()
                         .as_bytes()
                         .to_vec(),
                 })
@@ -720,19 +727,20 @@
                         log.data.as_ref(),
                     )
                     .map_err(|e| format!("unable to decode log.data: {}", e))?;
+                values.reverse();
                 Ok(Self {
-                    new_comptroller: values
-                        .pop()
-                        .expect(INTERNAL_ERR)
-                        .into_address()
-                        .expect(INTERNAL_ERR)
-                        .as_bytes()
-                        .to_vec(),
                     old_comptroller: values
                         .pop()
                         .expect(INTERNAL_ERR)
                         .into_address()
+                        .unwrap()
+                        .as_bytes()
+                        .to_vec(),
+                    new_comptroller: values
+                        .pop()
                         .expect(INTERNAL_ERR)
+                        .into_address()
+                        .unwrap()
                         .as_bytes()
                         .to_vec(),
                 })
@@ -804,19 +812,20 @@
                         log.data.as_ref(),
                     )
                     .map_err(|e| format!("unable to decode log.data: {}", e))?;
+                values.reverse();
                 Ok(Self {
-                    new_interest_rate_model: values
-                        .pop()
-                        .expect(INTERNAL_ERR)
-                        .into_address()
-                        .expect(INTERNAL_ERR)
-                        .as_bytes()
-                        .to_vec(),
                     old_interest_rate_model: values
                         .pop()
                         .expect(INTERNAL_ERR)
                         .into_address()
+                        .unwrap()
+                        .as_bytes()
+                        .to_vec(),
+                    new_interest_rate_model: values
+                        .pop()
                         .expect(INTERNAL_ERR)
+                        .into_address()
+                        .unwrap()
                         .as_bytes()
                         .to_vec(),
                 })
@@ -891,19 +900,20 @@
                         log.data.as_ref(),
                     )
                     .map_err(|e| format!("unable to decode log.data: {}", e))?;
+                values.reverse();
                 Ok(Self {
-                    new_pending_admin: values
-                        .pop()
-                        .expect(INTERNAL_ERR)
-                        .into_address()
-                        .expect(INTERNAL_ERR)
-                        .as_bytes()
-                        .to_vec(),
                     old_pending_admin: values
                         .pop()
                         .expect(INTERNAL_ERR)
                         .into_address()
+                        .unwrap()
+                        .as_bytes()
+                        .to_vec(),
+                    new_pending_admin: values
+                        .pop()
                         .expect(INTERNAL_ERR)
+                        .into_address()
+                        .unwrap()
                         .as_bytes()
                         .to_vec(),
                 })
@@ -978,13 +988,14 @@
                         log.data.as_ref(),
                     )
                     .map_err(|e| format!("unable to decode log.data: {}", e))?;
+                values.reverse();
                 Ok(Self {
-                    new_reserve_factor_mantissa: values
+                    old_reserve_factor_mantissa: values
                         .pop()
                         .expect(INTERNAL_ERR)
                         .into_uint()
                         .expect(INTERNAL_ERR),
-                    old_reserve_factor_mantissa: values
+                    new_reserve_factor_mantissa: values
                         .pop()
                         .expect(INTERNAL_ERR)
                         .into_uint()
@@ -1063,24 +1074,25 @@
                         log.data.as_ref(),
                     )
                     .map_err(|e| format!("unable to decode log.data: {}", e))?;
+                values.reverse();
                 Ok(Self {
-                    redeem_tokens: values
+                    redeemer: values
                         .pop()
                         .expect(INTERNAL_ERR)
-                        .into_uint()
-                        .expect(INTERNAL_ERR),
+                        .into_address()
+                        .unwrap()
+                        .as_bytes()
+                        .to_vec(),
                     redeem_amount: values
                         .pop()
                         .expect(INTERNAL_ERR)
                         .into_uint()
                         .expect(INTERNAL_ERR),
-                    redeemer: values
+                    redeem_tokens: values
                         .pop()
                         .expect(INTERNAL_ERR)
-                        .into_address()
-                        .expect(INTERNAL_ERR)
-                        .as_bytes()
-                        .to_vec(),
+                        .into_uint()
+                        .expect(INTERNAL_ERR),
                 })
             }
             pub fn must_decode(log: &substreams_ethereum::pb::eth::v1::Log) -> Self {
@@ -1157,8 +1169,23 @@
                         log.data.as_ref(),
                     )
                     .map_err(|e| format!("unable to decode log.data: {}", e))?;
+                values.reverse();
                 Ok(Self {
-                    total_borrows: values
+                    payer: values
+                        .pop()
+                        .expect(INTERNAL_ERR)
+                        .into_address()
+                        .unwrap()
+                        .as_bytes()
+                        .to_vec(),
+                    borrower: values
+                        .pop()
+                        .expect(INTERNAL_ERR)
+                        .into_address()
+                        .unwrap()
+                        .as_bytes()
+                        .to_vec(),
+                    repay_amount: values
                         .pop()
                         .expect(INTERNAL_ERR)
                         .into_uint()
@@ -1168,25 +1195,11 @@
                         .expect(INTERNAL_ERR)
                         .into_uint()
                         .expect(INTERNAL_ERR),
-                    repay_amount: values
+                    total_borrows: values
                         .pop()
                         .expect(INTERNAL_ERR)
                         .into_uint()
                         .expect(INTERNAL_ERR),
-                    borrower: values
-                        .pop()
-                        .expect(INTERNAL_ERR)
-                        .into_address()
-                        .expect(INTERNAL_ERR)
-                        .as_bytes()
-                        .to_vec(),
-                    payer: values
-                        .pop()
-                        .expect(INTERNAL_ERR)
-                        .into_address()
-                        .expect(INTERNAL_ERR)
-                        .as_bytes()
-                        .to_vec(),
                 })
             }
             pub fn must_decode(log: &substreams_ethereum::pb::eth::v1::Log) -> Self {
@@ -1259,24 +1272,25 @@
                         log.data.as_ref(),
                     )
                     .map_err(|e| format!("unable to decode log.data: {}", e))?;
+                values.reverse();
                 Ok(Self {
-                    new_total_reserves: values
+                    admin: values
                         .pop()
                         .expect(INTERNAL_ERR)
-                        .into_uint()
-                        .expect(INTERNAL_ERR),
+                        .into_address()
+                        .unwrap()
+                        .as_bytes()
+                        .to_vec(),
                     reduce_amount: values
                         .pop()
                         .expect(INTERNAL_ERR)
                         .into_uint()
                         .expect(INTERNAL_ERR),
-                    admin: values
+                    new_total_reserves: values
                         .pop()
                         .expect(INTERNAL_ERR)
-                        .into_address()
-                        .expect(INTERNAL_ERR)
-                        .as_bytes()
-                        .to_vec(),
+                        .into_uint()
+                        .expect(INTERNAL_ERR),
                 })
             }
             pub fn must_decode(log: &substreams_ethereum::pb::eth::v1::Log) -> Self {
@@ -1347,6 +1361,7 @@
                         log.data.as_ref(),
                     )
                     .map_err(|e| format!("unable to decode log.data: {}", e))?;
+                values.reverse();
                 Ok(Self {
                     from: ethabi::decode(
                             &[ethabi::ParamType::Address],
@@ -1359,7 +1374,7 @@
                         .pop()
                         .expect(INTERNAL_ERR)
                         .into_address()
-                        .expect(INTERNAL_ERR)
+                        .unwrap()
                         .as_bytes()
                         .to_vec(),
                     to: ethabi::decode(
@@ -1373,7 +1388,7 @@
                         .pop()
                         .expect(INTERNAL_ERR)
                         .into_address()
-                        .expect(INTERNAL_ERR)
+                        .unwrap()
                         .as_bytes()
                         .to_vec(),
                     amount: values

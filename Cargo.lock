@@ -115,7 +115,9 @@ dependencies = [
  "ethabi",
  "num-bigint",
  "prost",
- "substreams",
+ "prost-build",
+ "prost-types",
+ "substreams 0.0.12",
  "substreams-ethereum",
  "tiny-keccak",
 ]
@@ -711,9 +713,9 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
 name = "substreams"
-version = "0.0.12"
+version = "0.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2cf0b1354a0212595433c76be5c419111253f826fe6030e3a01f90054d2d541e"
+checksum = "1c204a4e230019ce60eb11f0a9561e9030eeb7dbc2c15bddd5ab9e58aa96b262"
 dependencies = [
  "bigdecimal",
  "hex",
@@ -722,21 +724,37 @@ dependencies = [
  "prost",
  "prost-build",
  "prost-types",
- "substreams-macro",
+ "substreams-macro 0.0.11",
+ "thiserror",
+]
+
+[[package]]
+name = "substreams"
+version = "0.0.12"
+source = "git+https://github.com/streamingfast/substreams/?branch=develop#14a0a22b567e5dbc95d249d5ee8062b4008c3139"
+dependencies = [
+ "bigdecimal",
+ "hex",
+ "hex-literal",
+ "num-bigint",
+ "prost",
+ "prost-build",
+ "prost-types",
+ "substreams-macro 0.0.12",
  "thiserror",
 ]
 
 [[package]]
 name = "substreams-ethereum"
 version = "0.1.4"
-source = "git+https://github.com/streamingfast/substreams-ethereum?branch=feature/fix_version_12#97c4e755f9b6ebf896681c4d8f63413d5d44b4a3"
+source = "git+https://github.com/streamingfast/substreams-ethereum?branch=feature/num_big_int_type#7f5f1ee3dfca925a8f0c6bf4dda15325f8cee7bb"
 dependencies = [
  "ethabi",
  "getrandom",
  "prost",
  "prost-build",
  "prost-types",
- "substreams",
+ "substreams 0.0.11",
  "substreams-ethereum-abigen",
  "substreams-ethereum-derive",
 ]
@@ -744,13 +762,14 @@ dependencies = [
 [[package]]
 name = "substreams-ethereum-abigen"
 version = "0.1.4"
-source = "git+https://github.com/streamingfast/substreams-ethereum?branch=feature/fix_version_12#97c4e755f9b6ebf896681c4d8f63413d5d44b4a3"
+source = "git+https://github.com/streamingfast/substreams-ethereum?branch=feature/num_big_int_type#7f5f1ee3dfca925a8f0c6bf4dda15325f8cee7bb"
 dependencies = [
  "anyhow",
  "ethabi",
  "getrandom",
  "heck",
  "hex",
+ "num-bigint",
  "prettyplease",
  "proc-macro2",
  "quote",
@@ -760,7 +779,7 @@ dependencies = [
 [[package]]
 name = "substreams-ethereum-derive"
 version = "0.1.4"
-source = "git+https://github.com/streamingfast/substreams-ethereum?branch=feature/fix_version_12#97c4e755f9b6ebf896681c4d8f63413d5d44b4a3"
+source = "git+https://github.com/streamingfast/substreams-ethereum?branch=feature/num_big_int_type#7f5f1ee3dfca925a8f0c6bf4dda15325f8cee7bb"
 dependencies = [
  "ethabi",
  "heck",
@@ -773,9 +792,20 @@ dependencies = [
 
 [[package]]
 name = "substreams-macro"
-version = "0.0.12"
+version = "0.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f98d38372efa37bdfd7e071092f4f4dcdcaed5dc5e7290b0362a56081474867"
+checksum = "6f0db235f75c362557d3ce78c481535b51a688e189a030dc2d8610d8b6526a20"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+ "thiserror",
+]
+
+[[package]]
+name = "substreams-macro"
+version = "0.0.12"
+source = "git+https://github.com/streamingfast/substreams/?branch=develop#14a0a22b567e5dbc95d249d5ee8062b4008c3139"
 dependencies = [
  "proc-macro2",
  "quote",
