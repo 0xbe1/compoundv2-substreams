@@ -91,7 +91,7 @@ modules:
       - store: store_token
       - store: store_price
 
-  - name: store_mint_event
+  - name: store_mint
     kind: store
     updatePolicy: set
     valueType: proto:compound.v1.Mint

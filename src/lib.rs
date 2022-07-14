@@ -124,7 +124,7 @@ fn map_market_listed(
 }
 
 #[substreams::handlers::store]
-fn store_mint_event(mint_list: compound::MintList, output: store::StoreSet) {
+fn store_mint(mint_list: compound::MintList, output: store::StoreSet) {
     for mint in mint_list.mint_list {
         output.set(
             0,
