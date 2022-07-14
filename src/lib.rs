@@ -149,24 +149,6 @@ fn store_token(market_listed_list: compound::MarketListedList, output: store::St
             continue;
         }
         let ctoken = ctoken_res.unwrap();
-
-        let underlying_token_id_res: Result<Vec<u8>, String> = if is_ceth {
-            Ok(NULL_ADDRESS.to_vec())
-        } else if is_csai {
-            Ok(Hex::decode("89d24a6b4ccb1b6faa2625fe562bdd9a23260359").unwrap())
-        } else {
-            rpc::fetch(rpc::RpcCallParams {
-                to: ctoken_id.clone(),
-                method: "underlying()".to_string(),
-                args: vec![],
-            })
-            .map(|x| x[12..32].to_vec())
-        };
-        if underlying_token_id_res.is_err() {
-            continue;
-        }
-        let underlying_token_id = underlying_token_id_res.unwrap();
-
         let underlying_token_res = if is_ceth {
             Ok(compound::Token {
                 id: NULL_ADDRESS.to_vec(),
@@ -182,7 +164,13 @@ fn store_token(market_listed_list: compound::MarketListedList, output: store::St
                 decimals: 18,
             })
         } else {
-            rpc::fetch_token(underlying_token_id)
+            rpc::fetch(rpc::RpcCallParams {
+                to: ctoken_id.clone(),
+                method: "underlying()".to_string(),
+                args: vec![],
+            })
+            .map(|x| x[12..32].to_vec())
+            .and_then(rpc::fetch_token)
         };
         if underlying_token_res.is_err() {
             continue;
