@@ -139,6 +139,8 @@ fn store_mint_event(mint_list: compound::MintList, output: store::StoreSet) {
 fn store_token(market_listed_list: compound::MarketListedList, output: store::StoreSet) {
     for market_listed in market_listed_list.market_listed_list {
         let ctoken_id = market_listed.ctoken;
+        // handle eth and sai differently because
+        // eth and sai (89d24a6b4ccb1b6faa2625fe562bdd9a23260359) are NOT ERC20 tokens
         let is_ceth = ctoken_id == Hex::decode("4ddc2d193948926d02f9b1fe9e1daa0718270ed5").unwrap();
         let is_csai = ctoken_id == Hex::decode("f5dce57282a584d2746faf1593d3121fcac444dc").unwrap();
 

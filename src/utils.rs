@@ -46,8 +46,6 @@ pub fn string_to_bigdecimal(input: &[u8]) -> BigDecimal {
     return BigDecimal::from_str(str::from_utf8(input).unwrap()).unwrap();
 }
 
-// TODO: remove BigUint dependency
-// BigDecimal::from_str(str::from_utf8(price_bytes.as_slice()).unwrap()).unwrap().with_prec(100)
 pub fn bytes_to_bigdecimal(input: &[u8]) -> BigDecimal {
     return BigDecimal::from_str(&BigUint::from_bytes_be(input).to_string()).unwrap();
 }
