@@ -41,3 +41,12 @@ message MarketListed {
 message MarketListedList {
   repeated MarketListed market_listed_list = 1;
 }
+
+message MarketTvl {
+  bytes market = 1;
+  string tvl = 2;
+}
+
+message MarketTvlList {
+  repeated MarketTvl market_tvl_list = 1;
+}

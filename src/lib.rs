@@ -6,11 +6,10 @@ mod rpc;
 mod utils;
 
 use crate::utils::exponent_to_big_decimal;
-use bigdecimal::BigDecimal;
+use bigdecimal::{BigDecimal, Zero};
 use pb::compound;
-use std::ops::{Div, Mul};
+use std::ops::{Add, Div, Mul};
 use std::str::FromStr;
-use substreams::store::StoreGet;
 use substreams::{proto, store, Hex};
 use substreams_ethereum::pb::eth::v1 as eth;
 use substreams_ethereum::NULL_ADDRESS;
@@ -124,13 +123,76 @@ fn map_market_listed(
     Ok(market_listed_list)
 }
 
+#[substreams::handlers::map]
+fn map_market_tvl(
+    accrue_interest_list: compound::AccrueInterestList,
+    store_token: store::StoreGet,
+    store_price: store::StoreGet,
+) -> Result<compound::MarketTvlList, substreams::errors::Error> {
+    let mut market_tvl_list = compound::MarketTvlList {
+        market_tvl_list: vec![],
+    };
+    for accrue_interest in accrue_interest_list.accrue_interest_list {
+        let market_address = accrue_interest.address;
+        let underlying_res: Option<compound::Token> = store_token
+            .get_last(&format!(
+                "market:{}:underlying",
+                Hex::encode(&market_address)
+            ))
+            .map(|x| proto::decode(&x).unwrap());
+        let underlying_price_res = store_price
+            .get_last(&format!(
+                "market:{}:underlying:price",
+                Hex::encode(&market_address)
+            ))
+            .map(|x| utils::string_to_bigdecimal(x.as_ref()));
+        let ctoken_supply_res = rpc::fetch(rpc::RpcCallParams {
+            to: market_address.clone(),
+            method: "totalSupply()".to_string(),
+            args: vec![],
+        })
+        .map(|x| utils::bytes_to_bigdecimal(x.as_ref()));
+        let ctoken_exchange_rate_res = rpc::fetch(rpc::RpcCallParams {
+            to: market_address.clone(),
+            method: "exchangeRateStored()".to_string(),
+            args: vec![],
+        })
+        .map(|x| utils::bytes_to_bigdecimal(x.as_ref()));
+        if let (
+            Some(underlying),
+            Some(underlying_price),
+            Ok(ctoken_supply),
+            Ok(ctoken_exchange_rate),
+        ) = (
+            underlying_res,
+            underlying_price_res,
+            ctoken_supply_res,
+            ctoken_exchange_rate_res,
+        ) {
+            let total_value_locked = ctoken_supply
+                .mul(ctoken_exchange_rate)
+                .div(exponent_to_big_decimal(
+                    utils::MANTISSA_FACTOR + underlying.decimals,
+                ))
+                .mul(underlying_price);
+            let market_tvl = compound::MarketTvl {
+                market: market_address,
+                tvl: total_value_locked.to_string(),
+            };
+            market_tvl_list.market_tvl_list.push(market_tvl);
+        }
+    }
+    Ok(market_tvl_list)
+}
+
+// TODO: use append_bytes
 #[substreams::handlers::store]
 fn store_market_listed(market_listed_list: compound::MarketListedList, output: store::StoreAppend) {
     for market_listed in market_listed_list.market_listed_list {
         output.append(
             0,
             "protocol:market_listed".to_string(),
-            &format!("{}.", &Hex::encode(&market_listed.ctoken)),
+            &Hex::encode(&market_listed.ctoken),
         )
     }
 }
@@ -277,60 +339,49 @@ fn store_price(
 }
 
 #[substreams::handlers::store]
-fn store_tvl(
-    accrue_interest_list: compound::AccrueInterestList,
-    store_token: store::StoreGet,
-    store_price: store::StoreGet,
+fn store_market_tvl(market_tvl_list: compound::MarketTvlList, output: store::StoreSet) {
+    for market_tvl in market_tvl_list.market_tvl_list {
+        output.set(
+            0,
+            format!("market:{}:tvl", Hex::encode(market_tvl.market)),
+            &Vec::from(market_tvl.tvl),
+        )
+    }
+}
+
+#[substreams::handlers::store]
+fn store_protocol_tvl(
+    market_tvl_list: compound::MarketTvlList,
+    store_market_listed: store::StoreGet,
+    store_market_tvl: store::StoreGet,
     output: store::StoreSet,
 ) {
-    for accrue_interest in accrue_interest_list.accrue_interest_list {
-        let market_address = accrue_interest.address;
-        let underlying_res: Option<compound::Token> = store_token
-            .get_last(&format!(
-                "market:{}:underlying",
-                Hex::encode(&market_address)
-            ))
-            .map(|x| proto::decode(&x).unwrap());
-        let underlying_price_res = store_price
-            .get_last(&format!(
-                "market:{}:underlying:price",
-                Hex::encode(&market_address)
-            ))
-            .map(|x| utils::string_to_bigdecimal(x.as_ref()));
-        let ctoken_supply_res = rpc::fetch(rpc::RpcCallParams {
-            to: market_address.clone(),
-            method: "totalSupply()".to_string(),
-            args: vec![],
-        })
-        .map(|x| utils::bytes_to_bigdecimal(x.as_ref()));
-        let ctoken_exchange_rate_res = rpc::fetch(rpc::RpcCallParams {
-            to: market_address.clone(),
-            method: "exchangeRateStored()".to_string(),
-            args: vec![],
-        })
-        .map(|x| utils::bytes_to_bigdecimal(x.as_ref()));
-        if let (
-            Some(underlying),
-            Some(underlying_price),
-            Ok(ctoken_supply),
-            Ok(ctoken_exchange_rate),
-        ) = (
-            underlying_res,
-            underlying_price_res,
-            ctoken_supply_res,
-            ctoken_exchange_rate_res,
-        ) {
-            let total_value_locked = ctoken_supply
-                .mul(ctoken_exchange_rate)
-                .div(exponent_to_big_decimal(
-                    utils::MANTISSA_FACTOR + underlying.decimals,
-                ))
-                .mul(underlying_price);
+    for market_tvl in market_tvl_list.market_tvl_list {
+        let market_address = market_tvl.market;
+        let market_listed_res: Option<Vec<Vec<u8>>> = store_market_listed
+            .get_last(&"protocol:market_listed".to_string())
+            .map(|x| x.chunks(20).map(|s| s.into()).collect());
+        if let Some(market_listed) = market_listed_res {
+            let mut protocol_tvl: BigDecimal = BigDecimal::zero();
+            for market in market_listed {
+                if market == market_address {
+                    protocol_tvl =
+                        protocol_tvl.add(BigDecimal::from_str(market_tvl.tvl.as_str()).unwrap());
+                    continue;
+                }
+                let other_market_tvl_res: Option<BigDecimal> = store_market_tvl
+                    .get_last(&format!("market:{}:tvl", Hex::encode(&market_address)))
+                    .map(|x| utils::string_to_bigdecimal(x.as_ref()));
+                if let Some(other_market_tvl) = other_market_tvl_res {
+                    protocol_tvl = protocol_tvl.add(other_market_tvl)
+                }
+            }
+
             output.set(
                 0,
-                format!("market:{}:tvl", Hex::encode(&market_address)),
-                &Vec::from(total_value_locked.to_string()),
-            );
+                "protocol:tvl".to_string(),
+                &Vec::from(protocol_tvl.to_string()),
+            )
         }
     }
 }
