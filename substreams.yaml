@@ -82,6 +82,13 @@ modules:
       - store: store_oracle
       - store: store_token
 
+  - name: store_market_listed
+    kind: store
+    updatePolicy: append
+    valueType: string
+    inputs:
+      - map: map_market_listed
+
   - name: store_tvl
     kind: store
     updatePolicy: set

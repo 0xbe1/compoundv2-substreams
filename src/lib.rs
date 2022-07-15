@@ -10,6 +10,7 @@ use bigdecimal::BigDecimal;
 use pb::compound;
 use std::ops::{Div, Mul};
 use std::str::FromStr;
+use substreams::store::StoreGet;
 use substreams::{proto, store, Hex};
 use substreams_ethereum::pb::eth::v1 as eth;
 use substreams_ethereum::NULL_ADDRESS;
@@ -121,6 +122,17 @@ fn map_market_listed(
         }
     }
     Ok(market_listed_list)
+}
+
+#[substreams::handlers::store]
+fn store_market_listed(market_listed_list: compound::MarketListedList, output: store::StoreAppend) {
+    for market_listed in market_listed_list.market_listed_list {
+        output.append(
+            0,
+            "protocol:market_listed".to_string(),
+            &format!("{}.", &Hex::encode(&market_listed.ctoken)),
+        )
+    }
 }
 
 #[substreams::handlers::store]
@@ -318,7 +330,7 @@ fn store_tvl(
                 0,
                 format!("market:{}:tvl", Hex::encode(&market_address)),
                 &Vec::from(total_value_locked.to_string()),
-            )
+            );
         }
     }
 }
