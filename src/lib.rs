@@ -454,3 +454,49 @@ fn store_protocol_tvl(
         }
     }
 }
+
+#[substreams::handlers::store]
+fn store_revenue(
+    market_revenue_delta_list: compound::MarketRevenueDeltaList,
+    output: store::StoreAddBigFloat,
+) {
+    for market_revenue_delta in market_revenue_delta_list.market_revenue_delta_list {
+        let market_address = Hex::encode(market_revenue_delta.market);
+        let total_revenue_delta =
+            BigDecimal::from_str(market_revenue_delta.total_revenue.as_str()).unwrap();
+        let protocol_revenue_delta =
+            BigDecimal::from_str(market_revenue_delta.protocol_revenue.as_str()).unwrap();
+        let supply_revenue_delta =
+            BigDecimal::from_str(market_revenue_delta.supply_revenue.as_str()).unwrap();
+        output.add(
+            0,
+            format!("market:{}:revenue:total", market_address),
+            &total_revenue_delta,
+        );
+        output.add(
+            0,
+            format!("market:{}:revenue:protocol", market_address),
+            &BigDecimal::from_str(market_revenue_delta.protocol_revenue.as_str()).unwrap(),
+        );
+        output.add(
+            0,
+            format!("market:{}:revenue:supply", market_address),
+            &BigDecimal::from_str(market_revenue_delta.supply_revenue.as_str()).unwrap(),
+        );
+        output.add(
+            0,
+            "protocol:revenue:total".to_string(),
+            &total_revenue_delta,
+        );
+        output.add(
+            0,
+            "protocol:revenue:protocol".to_string(),
+            &protocol_revenue_delta,
+        );
+        output.add(
+            0,
+            "protocol:revenue:supply".to_string(),
+            &supply_revenue_delta,
+        );
+    }
+}

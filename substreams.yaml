@@ -138,3 +138,10 @@ modules:
       - map: map_market_tvl
       - store: store_market_listed
       - store: store_market_tvl
+
+  - name: store_revenue
+    kind: store
+    updatePolicy: add
+    valueType: bigfloat
+    inputs:
+      - map: map_market_revenue_delta

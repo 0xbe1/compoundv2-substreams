@@ -47,6 +47,8 @@ graph TD;
   map_market_tvl --> store_protocol_tvl
   store_market_listed --> store_protocol_tvl
   store_market_tvl --> store_protocol_tvl
+  store_revenue[store: store_revenue]
+  map_market_revenue_delta --> store_revenue
 ```
 
 ## Quick Start
