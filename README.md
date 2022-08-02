@@ -18,8 +18,15 @@ graph TD;
   map_accrue_interest --> map_market_tvl
   store_token --> map_market_tvl
   store_price --> map_market_tvl
+  map_market_revenue_delta[map: map_market_revenue_delta]
+  map_accrue_interest --> map_market_revenue_delta
+  store_market_reserve_factor --> map_market_revenue_delta
+  store_price --> map_market_revenue_delta
+  store_token --> map_market_revenue_delta
   store_token[store: store_token]
   map_market_listed --> store_token
+  store_market_reserve_factor[store: store_market_reserve_factor]
+  sf.ethereum.type.v1.Block[source: sf.ethereum.type.v1.Block] --> store_market_reserve_factor
   store_market_count[store: store_market_count]
   map_market_listed --> store_market_count
   store_mint_count[store: store_mint_count]
