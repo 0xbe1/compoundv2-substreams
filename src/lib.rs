@@ -8,7 +8,7 @@ mod utils;
 use crate::utils::{exponent_to_big_decimal, MANTISSA_FACTOR};
 use bigdecimal::{BigDecimal, Zero};
 use pb::compound;
-use std::ops::{Add, Div, Mul};
+use std::ops::{Add, Div, Mul, Sub};
 use std::str::FromStr;
 use substreams::{proto, store, Hex};
 use substreams_ethereum::pb::eth::v1 as eth;
@@ -185,6 +185,50 @@ fn map_market_tvl(
     Ok(market_tvl_list)
 }
 
+#[substreams::handlers::map]
+fn map_market_revenue_delta(
+    accrue_interest_list: compound::AccrueInterestList,
+    store_reserve_factor: store::StoreGet,
+    store_price: store::StoreGet,
+    store_token: store::StoreGet,
+) -> Result<compound::MarketRevenueDeltaList, substreams::errors::Error> {
+    let mut market_revenue_delta_list = compound::MarketRevenueDeltaList {
+        market_revenue_delta_list: vec![],
+    };
+    for accrue_interest in accrue_interest_list.accrue_interest_list {
+        let interest_accumulated_mantissa =
+            BigDecimal::from_str(accrue_interest.interest_accumulated.as_str()).unwrap();
+        let market_address = Hex::encode(accrue_interest.address.clone());
+        let reserve_factor_res =
+            store_reserve_factor.get_last(&format!("market:{}:reserve_factor", market_address));
+        let underlying_price_res =
+            store_price.get_last(&format!("market:{}:underlying:price", market_address));
+        let underlying_res = store_token.get_last(&format!("market:{}:underlying", market_address));
+        if let (Some(b_reserve_factor), Some(b_underlying_price), Some(b_underlying)) =
+            (reserve_factor_res, underlying_price_res, underlying_res)
+        {
+            let reserve_factor = utils::string_to_bigdecimal(b_reserve_factor.as_ref());
+            let underlying_price = utils::string_to_bigdecimal(b_underlying_price.as_ref());
+            let underlying_token: compound::Token = proto::decode(&b_underlying).unwrap();
+            let total_revenue = interest_accumulated_mantissa
+                .div(exponent_to_big_decimal(underlying_token.decimals))
+                .mul(underlying_price);
+            let protocol_revenue = total_revenue.clone().mul(reserve_factor);
+            let supply_revenue = total_revenue.clone().sub(protocol_revenue.clone());
+            let revenue_delta = compound::MarketRevenueDelta {
+                market: accrue_interest.address,
+                total_revenue: total_revenue.to_string(),
+                protocol_revenue: protocol_revenue.to_string(),
+                supply_revenue: supply_revenue.to_string(),
+            };
+            market_revenue_delta_list
+                .market_revenue_delta_list
+                .push(revenue_delta)
+        }
+    }
+    Ok(market_revenue_delta_list)
+}
+
 #[substreams::handlers::store]
 fn store_market_reserve_factor(blk: eth::Block, output: store::StoreSet) {
     for trx in blk.transaction_traces {
@@ -327,8 +371,6 @@ fn store_oracle(blk: eth::Block, output: store::StoreSet) {
         }
     }
 }
-
-// TODO: interest accumulated -> protocol side revenue, supply side revenue
 
 #[substreams::handlers::store]
 fn store_price(

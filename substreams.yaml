@@ -46,13 +46,22 @@ modules:
 
   - name: map_market_tvl
     kind: map
-    initialBlock: 7710671
     inputs:
       - map: map_accrue_interest
       - store: store_token
       - store: store_price
     output:
       type: proto:compound.v1.MarketTvlList
+
+  - name: map_market_revenue_delta
+    kind: map
+    inputs:
+      - map: map_accrue_interest
+      - store: store_market_reserve_factor
+      - store: store_price
+      - store: store_token
+    output:
+      type: proto:compound.v1.MarketRevenueDeltaList
 
   - name: store_token
     kind: store

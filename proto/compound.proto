@@ -50,3 +50,14 @@ message MarketTvl {
 message MarketTvlList {
   repeated MarketTvl market_tvl_list = 1;
 }
+
+message MarketRevenueDelta {
+  bytes market = 1;
+  string total_revenue = 2;
+  string protocol_revenue = 3;
+  string supply_revenue = 4;
+}
+
+message MarketRevenueDeltaList {
+  repeated MarketRevenueDelta market_revenue_delta_list = 1;
+}
