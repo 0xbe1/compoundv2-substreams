@@ -5,7 +5,7 @@ mod pb;
 mod rpc;
 mod utils;
 
-use crate::utils::exponent_to_big_decimal;
+use crate::utils::{exponent_to_big_decimal, MANTISSA_FACTOR};
 use bigdecimal::{BigDecimal, Zero};
 use pb::compound;
 use std::ops::{Add, Div, Mul};
@@ -183,6 +183,33 @@ fn map_market_tvl(
         }
     }
     Ok(market_tvl_list)
+}
+
+#[substreams::handlers::store]
+fn store_market_reserve_factor(blk: eth::Block, output: store::StoreSet) {
+    for trx in blk.transaction_traces {
+        for log in trx.receipt.unwrap().logs.iter() {
+            if !abi::ctoken::events::NewReserveFactor::match_log(log) {
+                continue;
+            }
+            let new_reserve_factor = abi::ctoken::events::NewReserveFactor::must_decode(log);
+            output.set(
+                0,
+                format!("market:{}:reserve_factor", Hex::encode(&log.address)),
+                &Vec::from(
+                    BigDecimal::from_str(
+                        new_reserve_factor
+                            .new_reserve_factor_mantissa
+                            .to_string()
+                            .as_str(),
+                    )
+                    .unwrap()
+                    .div(exponent_to_big_decimal(MANTISSA_FACTOR))
+                    .to_string(),
+                ),
+            )
+        }
+    }
 }
 
 // TODO: use append_bytes

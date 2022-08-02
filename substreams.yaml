@@ -61,6 +61,14 @@ modules:
     inputs:
       - map: map_market_listed
 
+  - name: store_market_reserve_factor
+    kind: store
+    initialBlock: 7710671
+    updatePolicy: set
+    valueType: string
+    inputs:
+      - source: sf.ethereum.type.v1.Block
+
   - name: store_market_count
     kind: store
     updatePolicy: add
