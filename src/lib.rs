@@ -11,30 +11,24 @@ use pb::compound;
 use std::ops::{Add, Div, Mul, Sub};
 use std::str::FromStr;
 use substreams::{proto, store, Hex};
-use substreams_ethereum::pb::eth::v1 as eth;
 use substreams_ethereum::NULL_ADDRESS;
+use substreams_ethereum::{pb::eth as ethpb, Event as EventTrait};
 
 #[substreams::handlers::map]
 fn map_accrue_interest(
-    blk: eth::Block,
+    blk: ethpb::v1::Block,
 ) -> Result<compound::AccrueInterestList, substreams::errors::Error> {
     let mut accrue_interest_list: Vec<compound::AccrueInterest> = vec![];
-    for trx in blk.transaction_traces {
-        accrue_interest_list.extend(trx.receipt.unwrap().logs.iter().filter_map(|log| {
-            if !abi::ctoken::events::AccrueInterest::match_log(log) {
-                return None;
-            }
-
-            let accrue_interest = abi::ctoken::events::AccrueInterest::must_decode(log);
-
-            Some(compound::AccrueInterest {
+    for log in blk.logs() {
+        if let Some(accrue_interest) = abi::ctoken::events::AccrueInterest::match_and_decode(log) {
+            accrue_interest_list.push(compound::AccrueInterest {
                 interest_accumulated: accrue_interest.interest_accumulated.to_string(),
                 borrow_index: accrue_interest.borrow_index.to_string(),
                 total_borrows: accrue_interest.total_borrows.to_string(),
-                address: log.address.clone(),
+                address: log.log.address.clone(),
                 block_number: blk.number,
             })
-        }));
+        }
     }
 
     Ok(compound::AccrueInterestList {
@@ -44,19 +38,15 @@ fn map_accrue_interest(
 
 #[substreams::handlers::map]
 fn map_mint(
-    blk: eth::Block,
+    blk: ethpb::v1::Block,
     store_token: store::StoreGet,
     store_price: store::StoreGet,
 ) -> Result<compound::MintList, substreams::errors::Error> {
     let mut mint_list = compound::MintList { mint_list: vec![] };
     for trx in blk.transaction_traces {
         for log in trx.receipt.unwrap().logs.iter() {
-            if !abi::ctoken::events::Mint::match_log(log) {
-                continue;
-            }
-
             let market_address = &log.address;
-            let mint_event = abi::ctoken::events::Mint::must_decode(log);
+            let mint_event_res = abi::ctoken::events::Mint::match_and_decode(log);
             let underlying_price_res = store_price.get_last(&format!(
                 "market:{}:underlying:price",
                 Hex::encode(market_address)
@@ -65,8 +55,8 @@ fn map_mint(
                 "market:{}:underlying",
                 Hex::encode(market_address)
             ));
-            if let (Some(underlying_token), Some(underlying_price)) =
-                (underlying_res, underlying_price_res)
+            if let (Some(mint_event), Some(underlying_token), Some(underlying_price)) =
+                (mint_event_res, underlying_res, underlying_price_res)
             {
                 let price = utils::string_to_bigdecimal(underlying_price.as_ref());
                 let underlying_token: compound::Token = proto::decode(&underlying_token).unwrap();
@@ -100,24 +90,18 @@ fn map_mint(
 
 #[substreams::handlers::map]
 fn map_market_listed(
-    blk: eth::Block,
+    blk: ethpb::v1::Block,
 ) -> Result<compound::MarketListedList, substreams::errors::Error> {
     let mut market_listed_list = compound::MarketListedList {
         market_listed_list: vec![],
     };
-    for trx in blk.transaction_traces {
-        for call in trx.calls.iter() {
-            for log in call.logs.iter() {
-                if !abi::comptroller::events::MarketListed::match_log(log) {
-                    continue;
-                }
-                let market_listed = abi::comptroller::events::MarketListed::must_decode(log);
-                market_listed_list
-                    .market_listed_list
-                    .push(compound::MarketListed {
-                        ctoken: market_listed.c_token,
-                    });
-            }
+    for log in blk.logs() {
+        if let Some(market_listed) = abi::comptroller::events::MarketListed::match_and_decode(log) {
+            market_listed_list
+                .market_listed_list
+                .push(compound::MarketListed {
+                    ctoken: market_listed.c_token,
+                });
         }
     }
     Ok(market_listed_list)
@@ -230,16 +214,14 @@ fn map_market_revenue_delta(
 }
 
 #[substreams::handlers::store]
-fn store_market_reserve_factor(blk: eth::Block, output: store::StoreSet) {
-    for trx in blk.transaction_traces {
-        for log in trx.receipt.unwrap().logs.iter() {
-            if !abi::ctoken::events::NewReserveFactor::match_log(log) {
-                continue;
-            }
-            let new_reserve_factor = abi::ctoken::events::NewReserveFactor::must_decode(log);
+fn store_market_reserve_factor(blk: ethpb::v1::Block, output: store::StoreSet) {
+    for log in blk.logs() {
+        if let Some(new_reserve_factor) =
+            abi::ctoken::events::NewReserveFactor::match_and_decode(log)
+        {
             output.set(
                 0,
-                format!("market:{}:reserve_factor", Hex::encode(&log.address)),
+                format!("market:{}:reserve_factor", Hex::encode(&log.log.address)),
                 &Vec::from(
                     BigDecimal::from_str(
                         new_reserve_factor
@@ -355,14 +337,11 @@ fn store_market_count(
 }
 
 #[substreams::handlers::store]
-fn store_oracle(blk: eth::Block, output: store::StoreSet) {
-    for trx in blk.transaction_traces {
-        for log in trx.receipt.unwrap().logs.iter() {
-            if !abi::comptroller::events::NewPriceOracle::match_log(log) {
-                continue;
-            }
-
-            let new_price_oracle = abi::comptroller::events::NewPriceOracle::must_decode(log);
+fn store_oracle(blk: ethpb::v1::Block, output: store::StoreSet) {
+    for log in blk.logs() {
+        if let Some(new_price_oracle) =
+            abi::comptroller::events::NewPriceOracle::match_and_decode(log)
+        {
             output.set(
                 0,
                 "protocol:oracle".to_string(),

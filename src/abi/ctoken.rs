@@ -66,8 +66,9 @@
                         log.data.as_ref(),
                     )
                     .map_err(|e| format!("unable to decode log.data: {}", e))?;
+                values.reverse();
                 Ok(Self {
-                    total_borrows: values
+                    interest_accumulated: values
                         .pop()
                         .expect(INTERNAL_ERR)
                         .into_uint()
@@ -77,20 +78,23 @@
                         .expect(INTERNAL_ERR)
                         .into_uint()
                         .expect(INTERNAL_ERR),
-                    interest_accumulated: values
+                    total_borrows: values
                         .pop()
                         .expect(INTERNAL_ERR)
                         .into_uint()
                         .expect(INTERNAL_ERR),
                 })
             }
-            pub fn must_decode(log: &substreams_ethereum::pb::eth::v1::Log) -> Self {
-                match Self::decode(log) {
-                    Ok(v) => v,
-                    Err(e) => {
-                        panic!("Unable to decode logs.AccrueInterest event: {:#}", e)
-                    }
-                }
+        }
+        impl substreams_ethereum::Event for AccrueInterest {
+            const NAME: &'static str = "AccrueInterest";
+            fn match_log(log: &substreams_ethereum::pb::eth::v1::Log) -> bool {
+                Self::match_log(log)
+            }
+            fn decode(
+                log: &substreams_ethereum::pb::eth::v1::Log,
+            ) -> Result<Self, String> {
+                Self::decode(log)
             }
         }
         #[derive(Debug, Clone, PartialEq)]
@@ -152,6 +156,7 @@
                         log.data.as_ref(),
                     )
                     .map_err(|e| format!("unable to decode log.data: {}", e))?;
+                values.reverse();
                 Ok(Self {
                     owner: ethabi::decode(
                             &[ethabi::ParamType::Address],
@@ -188,11 +193,16 @@
                         .expect(INTERNAL_ERR),
                 })
             }
-            pub fn must_decode(log: &substreams_ethereum::pb::eth::v1::Log) -> Self {
-                match Self::decode(log) {
-                    Ok(v) => v,
-                    Err(e) => panic!("Unable to decode logs.Approval event: {:#}", e),
-                }
+        }
+        impl substreams_ethereum::Event for Approval {
+            const NAME: &'static str = "Approval";
+            fn match_log(log: &substreams_ethereum::pb::eth::v1::Log) -> bool {
+                Self::match_log(log)
+            }
+            fn decode(
+                log: &substreams_ethereum::pb::eth::v1::Log,
+            ) -> Result<Self, String> {
+                Self::decode(log)
             }
         }
         #[derive(Debug, Clone, PartialEq)]
@@ -260,8 +270,16 @@
                         log.data.as_ref(),
                     )
                     .map_err(|e| format!("unable to decode log.data: {}", e))?;
+                values.reverse();
                 Ok(Self {
-                    total_borrows: values
+                    borrower: values
+                        .pop()
+                        .expect(INTERNAL_ERR)
+                        .into_address()
+                        .expect(INTERNAL_ERR)
+                        .as_bytes()
+                        .to_vec(),
+                    borrow_amount: values
                         .pop()
                         .expect(INTERNAL_ERR)
                         .into_uint()
@@ -271,25 +289,23 @@
                         .expect(INTERNAL_ERR)
                         .into_uint()
                         .expect(INTERNAL_ERR),
-                    borrow_amount: values
+                    total_borrows: values
                         .pop()
                         .expect(INTERNAL_ERR)
                         .into_uint()
                         .expect(INTERNAL_ERR),
-                    borrower: values
-                        .pop()
-                        .expect(INTERNAL_ERR)
-                        .into_address()
-                        .expect(INTERNAL_ERR)
-                        .as_bytes()
-                        .to_vec(),
                 })
             }
-            pub fn must_decode(log: &substreams_ethereum::pb::eth::v1::Log) -> Self {
-                match Self::decode(log) {
-                    Ok(v) => v,
-                    Err(e) => panic!("Unable to decode logs.Borrow event: {:#}", e),
-                }
+        }
+        impl substreams_ethereum::Event for Borrow {
+            const NAME: &'static str = "Borrow";
+            fn match_log(log: &substreams_ethereum::pb::eth::v1::Log) -> bool {
+                Self::match_log(log)
+            }
+            fn decode(
+                log: &substreams_ethereum::pb::eth::v1::Log,
+            ) -> Result<Self, String> {
+                Self::decode(log)
             }
         }
         #[derive(Debug, Clone, PartialEq)]
@@ -355,8 +371,9 @@
                         log.data.as_ref(),
                     )
                     .map_err(|e| format!("unable to decode log.data: {}", e))?;
+                values.reverse();
                 Ok(Self {
-                    detail: values
+                    error: values
                         .pop()
                         .expect(INTERNAL_ERR)
                         .into_uint()
@@ -366,18 +383,23 @@
                         .expect(INTERNAL_ERR)
                         .into_uint()
                         .expect(INTERNAL_ERR),
-                    error: values
+                    detail: values
                         .pop()
                         .expect(INTERNAL_ERR)
                         .into_uint()
                         .expect(INTERNAL_ERR),
                 })
             }
-            pub fn must_decode(log: &substreams_ethereum::pb::eth::v1::Log) -> Self {
-                match Self::decode(log) {
-                    Ok(v) => v,
-                    Err(e) => panic!("Unable to decode logs.Failure event: {:#}", e),
-                }
+        }
+        impl substreams_ethereum::Event for Failure {
+            const NAME: &'static str = "Failure";
+            fn match_log(log: &substreams_ethereum::pb::eth::v1::Log) -> bool {
+                Self::match_log(log)
+            }
+            fn decode(
+                log: &substreams_ethereum::pb::eth::v1::Log,
+            ) -> Result<Self, String> {
+                Self::decode(log)
             }
         }
         #[derive(Debug, Clone, PartialEq)]
@@ -447,13 +469,16 @@
                         log.data.as_ref(),
                     )
                     .map_err(|e| format!("unable to decode log.data: {}", e))?;
+                values.reverse();
                 Ok(Self {
-                    seize_tokens: values
+                    liquidator: values
                         .pop()
                         .expect(INTERNAL_ERR)
-                        .into_uint()
-                        .expect(INTERNAL_ERR),
-                    c_token_collateral: values
+                        .into_address()
+                        .expect(INTERNAL_ERR)
+                        .as_bytes()
+                        .to_vec(),
+                    borrower: values
                         .pop()
                         .expect(INTERNAL_ERR)
                         .into_address()
@@ -465,29 +490,30 @@
                         .expect(INTERNAL_ERR)
                         .into_uint()
                         .expect(INTERNAL_ERR),
-                    borrower: values
+                    c_token_collateral: values
                         .pop()
                         .expect(INTERNAL_ERR)
                         .into_address()
                         .expect(INTERNAL_ERR)
                         .as_bytes()
                         .to_vec(),
-                    liquidator: values
+                    seize_tokens: values
                         .pop()
                         .expect(INTERNAL_ERR)
-                        .into_address()
-                        .expect(INTERNAL_ERR)
-                        .as_bytes()
-                        .to_vec(),
+                        .into_uint()
+                        .expect(INTERNAL_ERR),
                 })
             }
-            pub fn must_decode(log: &substreams_ethereum::pb::eth::v1::Log) -> Self {
-                match Self::decode(log) {
-                    Ok(v) => v,
-                    Err(e) => {
-                        panic!("Unable to decode logs.LiquidateBorrow event: {:#}", e)
-                    }
-                }
+        }
+        impl substreams_ethereum::Event for LiquidateBorrow {
+            const NAME: &'static str = "LiquidateBorrow";
+            fn match_log(log: &substreams_ethereum::pb::eth::v1::Log) -> bool {
+                Self::match_log(log)
+            }
+            fn decode(
+                log: &substreams_ethereum::pb::eth::v1::Log,
+            ) -> Result<Self, String> {
+                Self::decode(log)
             }
         }
         #[derive(Debug, Clone, PartialEq)]
@@ -553,17 +579,8 @@
                         log.data.as_ref(),
                     )
                     .map_err(|e| format!("unable to decode log.data: {}", e))?;
+                values.reverse();
                 Ok(Self {
-                    mint_tokens: values
-                        .pop()
-                        .expect(INTERNAL_ERR)
-                        .into_uint()
-                        .expect(INTERNAL_ERR),
-                    mint_amount: values
-                        .pop()
-                        .expect(INTERNAL_ERR)
-                        .into_uint()
-                        .expect(INTERNAL_ERR),
                     minter: values
                         .pop()
                         .expect(INTERNAL_ERR)
@@ -571,13 +588,28 @@
                         .expect(INTERNAL_ERR)
                         .as_bytes()
                         .to_vec(),
+                    mint_amount: values
+                        .pop()
+                        .expect(INTERNAL_ERR)
+                        .into_uint()
+                        .expect(INTERNAL_ERR),
+                    mint_tokens: values
+                        .pop()
+                        .expect(INTERNAL_ERR)
+                        .into_uint()
+                        .expect(INTERNAL_ERR),
                 })
             }
-            pub fn must_decode(log: &substreams_ethereum::pb::eth::v1::Log) -> Self {
-                match Self::decode(log) {
-                    Ok(v) => v,
-                    Err(e) => panic!("Unable to decode logs.Mint event: {:#}", e),
-                }
+        }
+        impl substreams_ethereum::Event for Mint {
+            const NAME: &'static str = "Mint";
+            fn match_log(log: &substreams_ethereum::pb::eth::v1::Log) -> bool {
+                Self::match_log(log)
+            }
+            fn decode(
+                log: &substreams_ethereum::pb::eth::v1::Log,
+            ) -> Result<Self, String> {
+                Self::decode(log)
             }
         }
         #[derive(Debug, Clone, PartialEq)]
@@ -638,15 +670,16 @@
                         log.data.as_ref(),
                     )
                     .map_err(|e| format!("unable to decode log.data: {}", e))?;
+                values.reverse();
                 Ok(Self {
-                    new_admin: values
+                    old_admin: values
                         .pop()
                         .expect(INTERNAL_ERR)
                         .into_address()
                         .expect(INTERNAL_ERR)
                         .as_bytes()
                         .to_vec(),
-                    old_admin: values
+                    new_admin: values
                         .pop()
                         .expect(INTERNAL_ERR)
                         .into_address()
@@ -655,11 +688,16 @@
                         .to_vec(),
                 })
             }
-            pub fn must_decode(log: &substreams_ethereum::pb::eth::v1::Log) -> Self {
-                match Self::decode(log) {
-                    Ok(v) => v,
-                    Err(e) => panic!("Unable to decode logs.NewAdmin event: {:#}", e),
-                }
+        }
+        impl substreams_ethereum::Event for NewAdmin {
+            const NAME: &'static str = "NewAdmin";
+            fn match_log(log: &substreams_ethereum::pb::eth::v1::Log) -> bool {
+                Self::match_log(log)
+            }
+            fn decode(
+                log: &substreams_ethereum::pb::eth::v1::Log,
+            ) -> Result<Self, String> {
+                Self::decode(log)
             }
         }
         #[derive(Debug, Clone, PartialEq)]
@@ -720,15 +758,16 @@
                         log.data.as_ref(),
                     )
                     .map_err(|e| format!("unable to decode log.data: {}", e))?;
+                values.reverse();
                 Ok(Self {
-                    new_comptroller: values
+                    old_comptroller: values
                         .pop()
                         .expect(INTERNAL_ERR)
                         .into_address()
                         .expect(INTERNAL_ERR)
                         .as_bytes()
                         .to_vec(),
-                    old_comptroller: values
+                    new_comptroller: values
                         .pop()
                         .expect(INTERNAL_ERR)
                         .into_address()
@@ -737,13 +776,16 @@
                         .to_vec(),
                 })
             }
-            pub fn must_decode(log: &substreams_ethereum::pb::eth::v1::Log) -> Self {
-                match Self::decode(log) {
-                    Ok(v) => v,
-                    Err(e) => {
-                        panic!("Unable to decode logs.NewComptroller event: {:#}", e)
-                    }
-                }
+        }
+        impl substreams_ethereum::Event for NewComptroller {
+            const NAME: &'static str = "NewComptroller";
+            fn match_log(log: &substreams_ethereum::pb::eth::v1::Log) -> bool {
+                Self::match_log(log)
+            }
+            fn decode(
+                log: &substreams_ethereum::pb::eth::v1::Log,
+            ) -> Result<Self, String> {
+                Self::decode(log)
             }
         }
         #[derive(Debug, Clone, PartialEq)]
@@ -804,15 +846,16 @@
                         log.data.as_ref(),
                     )
                     .map_err(|e| format!("unable to decode log.data: {}", e))?;
+                values.reverse();
                 Ok(Self {
-                    new_interest_rate_model: values
+                    old_interest_rate_model: values
                         .pop()
                         .expect(INTERNAL_ERR)
                         .into_address()
                         .expect(INTERNAL_ERR)
                         .as_bytes()
                         .to_vec(),
-                    old_interest_rate_model: values
+                    new_interest_rate_model: values
                         .pop()
                         .expect(INTERNAL_ERR)
                         .into_address()
@@ -821,16 +864,16 @@
                         .to_vec(),
                 })
             }
-            pub fn must_decode(log: &substreams_ethereum::pb::eth::v1::Log) -> Self {
-                match Self::decode(log) {
-                    Ok(v) => v,
-                    Err(e) => {
-                        panic!(
-                            "Unable to decode logs.NewMarketInterestRateModel event: {:#}",
-                            e
-                        )
-                    }
-                }
+        }
+        impl substreams_ethereum::Event for NewMarketInterestRateModel {
+            const NAME: &'static str = "NewMarketInterestRateModel";
+            fn match_log(log: &substreams_ethereum::pb::eth::v1::Log) -> bool {
+                Self::match_log(log)
+            }
+            fn decode(
+                log: &substreams_ethereum::pb::eth::v1::Log,
+            ) -> Result<Self, String> {
+                Self::decode(log)
             }
         }
         #[derive(Debug, Clone, PartialEq)]
@@ -891,15 +934,16 @@
                         log.data.as_ref(),
                     )
                     .map_err(|e| format!("unable to decode log.data: {}", e))?;
+                values.reverse();
                 Ok(Self {
-                    new_pending_admin: values
+                    old_pending_admin: values
                         .pop()
                         .expect(INTERNAL_ERR)
                         .into_address()
                         .expect(INTERNAL_ERR)
                         .as_bytes()
                         .to_vec(),
-                    old_pending_admin: values
+                    new_pending_admin: values
                         .pop()
                         .expect(INTERNAL_ERR)
                         .into_address()
@@ -908,13 +952,16 @@
                         .to_vec(),
                 })
             }
-            pub fn must_decode(log: &substreams_ethereum::pb::eth::v1::Log) -> Self {
-                match Self::decode(log) {
-                    Ok(v) => v,
-                    Err(e) => {
-                        panic!("Unable to decode logs.NewPendingAdmin event: {:#}", e)
-                    }
-                }
+        }
+        impl substreams_ethereum::Event for NewPendingAdmin {
+            const NAME: &'static str = "NewPendingAdmin";
+            fn match_log(log: &substreams_ethereum::pb::eth::v1::Log) -> bool {
+                Self::match_log(log)
+            }
+            fn decode(
+                log: &substreams_ethereum::pb::eth::v1::Log,
+            ) -> Result<Self, String> {
+                Self::decode(log)
             }
         }
         #[derive(Debug, Clone, PartialEq)]
@@ -978,26 +1025,30 @@
                         log.data.as_ref(),
                     )
                     .map_err(|e| format!("unable to decode log.data: {}", e))?;
+                values.reverse();
                 Ok(Self {
-                    new_reserve_factor_mantissa: values
+                    old_reserve_factor_mantissa: values
                         .pop()
                         .expect(INTERNAL_ERR)
                         .into_uint()
                         .expect(INTERNAL_ERR),
-                    old_reserve_factor_mantissa: values
+                    new_reserve_factor_mantissa: values
                         .pop()
                         .expect(INTERNAL_ERR)
                         .into_uint()
                         .expect(INTERNAL_ERR),
                 })
             }
-            pub fn must_decode(log: &substreams_ethereum::pb::eth::v1::Log) -> Self {
-                match Self::decode(log) {
-                    Ok(v) => v,
-                    Err(e) => {
-                        panic!("Unable to decode logs.NewReserveFactor event: {:#}", e)
-                    }
-                }
+        }
+        impl substreams_ethereum::Event for NewReserveFactor {
+            const NAME: &'static str = "NewReserveFactor";
+            fn match_log(log: &substreams_ethereum::pb::eth::v1::Log) -> bool {
+                Self::match_log(log)
+            }
+            fn decode(
+                log: &substreams_ethereum::pb::eth::v1::Log,
+            ) -> Result<Self, String> {
+                Self::decode(log)
             }
         }
         #[derive(Debug, Clone, PartialEq)]
@@ -1063,17 +1114,8 @@
                         log.data.as_ref(),
                     )
                     .map_err(|e| format!("unable to decode log.data: {}", e))?;
+                values.reverse();
                 Ok(Self {
-                    redeem_tokens: values
-                        .pop()
-                        .expect(INTERNAL_ERR)
-                        .into_uint()
-                        .expect(INTERNAL_ERR),
-                    redeem_amount: values
-                        .pop()
-                        .expect(INTERNAL_ERR)
-                        .into_uint()
-                        .expect(INTERNAL_ERR),
                     redeemer: values
                         .pop()
                         .expect(INTERNAL_ERR)
@@ -1081,13 +1123,28 @@
                         .expect(INTERNAL_ERR)
                         .as_bytes()
                         .to_vec(),
+                    redeem_amount: values
+                        .pop()
+                        .expect(INTERNAL_ERR)
+                        .into_uint()
+                        .expect(INTERNAL_ERR),
+                    redeem_tokens: values
+                        .pop()
+                        .expect(INTERNAL_ERR)
+                        .into_uint()
+                        .expect(INTERNAL_ERR),
                 })
             }
-            pub fn must_decode(log: &substreams_ethereum::pb::eth::v1::Log) -> Self {
-                match Self::decode(log) {
-                    Ok(v) => v,
-                    Err(e) => panic!("Unable to decode logs.Redeem event: {:#}", e),
-                }
+        }
+        impl substreams_ethereum::Event for Redeem {
+            const NAME: &'static str = "Redeem";
+            fn match_log(log: &substreams_ethereum::pb::eth::v1::Log) -> bool {
+                Self::match_log(log)
+            }
+            fn decode(
+                log: &substreams_ethereum::pb::eth::v1::Log,
+            ) -> Result<Self, String> {
+                Self::decode(log)
             }
         }
         #[derive(Debug, Clone, PartialEq)]
@@ -1157,8 +1214,23 @@
                         log.data.as_ref(),
                     )
                     .map_err(|e| format!("unable to decode log.data: {}", e))?;
+                values.reverse();
                 Ok(Self {
-                    total_borrows: values
+                    payer: values
+                        .pop()
+                        .expect(INTERNAL_ERR)
+                        .into_address()
+                        .expect(INTERNAL_ERR)
+                        .as_bytes()
+                        .to_vec(),
+                    borrower: values
+                        .pop()
+                        .expect(INTERNAL_ERR)
+                        .into_address()
+                        .expect(INTERNAL_ERR)
+                        .as_bytes()
+                        .to_vec(),
+                    repay_amount: values
                         .pop()
                         .expect(INTERNAL_ERR)
                         .into_uint()
@@ -1168,32 +1240,23 @@
                         .expect(INTERNAL_ERR)
                         .into_uint()
                         .expect(INTERNAL_ERR),
-                    repay_amount: values
+                    total_borrows: values
                         .pop()
                         .expect(INTERNAL_ERR)
                         .into_uint()
                         .expect(INTERNAL_ERR),
-                    borrower: values
-                        .pop()
-                        .expect(INTERNAL_ERR)
-                        .into_address()
-                        .expect(INTERNAL_ERR)
-                        .as_bytes()
-                        .to_vec(),
-                    payer: values
-                        .pop()
-                        .expect(INTERNAL_ERR)
-                        .into_address()
-                        .expect(INTERNAL_ERR)
-                        .as_bytes()
-                        .to_vec(),
                 })
             }
-            pub fn must_decode(log: &substreams_ethereum::pb::eth::v1::Log) -> Self {
-                match Self::decode(log) {
-                    Ok(v) => v,
-                    Err(e) => panic!("Unable to decode logs.RepayBorrow event: {:#}", e),
-                }
+        }
+        impl substreams_ethereum::Event for RepayBorrow {
+            const NAME: &'static str = "RepayBorrow";
+            fn match_log(log: &substreams_ethereum::pb::eth::v1::Log) -> bool {
+                Self::match_log(log)
+            }
+            fn decode(
+                log: &substreams_ethereum::pb::eth::v1::Log,
+            ) -> Result<Self, String> {
+                Self::decode(log)
             }
         }
         #[derive(Debug, Clone, PartialEq)]
@@ -1259,17 +1322,8 @@
                         log.data.as_ref(),
                     )
                     .map_err(|e| format!("unable to decode log.data: {}", e))?;
+                values.reverse();
                 Ok(Self {
-                    new_total_reserves: values
-                        .pop()
-                        .expect(INTERNAL_ERR)
-                        .into_uint()
-                        .expect(INTERNAL_ERR),
-                    reduce_amount: values
-                        .pop()
-                        .expect(INTERNAL_ERR)
-                        .into_uint()
-                        .expect(INTERNAL_ERR),
                     admin: values
                         .pop()
                         .expect(INTERNAL_ERR)
@@ -1277,15 +1331,28 @@
                         .expect(INTERNAL_ERR)
                         .as_bytes()
                         .to_vec(),
+                    reduce_amount: values
+                        .pop()
+                        .expect(INTERNAL_ERR)
+                        .into_uint()
+                        .expect(INTERNAL_ERR),
+                    new_total_reserves: values
+                        .pop()
+                        .expect(INTERNAL_ERR)
+                        .into_uint()
+                        .expect(INTERNAL_ERR),
                 })
             }
-            pub fn must_decode(log: &substreams_ethereum::pb::eth::v1::Log) -> Self {
-                match Self::decode(log) {
-                    Ok(v) => v,
-                    Err(e) => {
-                        panic!("Unable to decode logs.ReservesReduced event: {:#}", e)
-                    }
-                }
+        }
+        impl substreams_ethereum::Event for ReservesReduced {
+            const NAME: &'static str = "ReservesReduced";
+            fn match_log(log: &substreams_ethereum::pb::eth::v1::Log) -> bool {
+                Self::match_log(log)
+            }
+            fn decode(
+                log: &substreams_ethereum::pb::eth::v1::Log,
+            ) -> Result<Self, String> {
+                Self::decode(log)
             }
         }
         #[derive(Debug, Clone, PartialEq)]
@@ -1347,6 +1414,7 @@
                         log.data.as_ref(),
                     )
                     .map_err(|e| format!("unable to decode log.data: {}", e))?;
+                values.reverse();
                 Ok(Self {
                     from: ethabi::decode(
                             &[ethabi::ParamType::Address],
@@ -1383,11 +1451,16 @@
                         .expect(INTERNAL_ERR),
                 })
             }
-            pub fn must_decode(log: &substreams_ethereum::pb::eth::v1::Log) -> Self {
-                match Self::decode(log) {
-                    Ok(v) => v,
-                    Err(e) => panic!("Unable to decode logs.Transfer event: {:#}", e),
-                }
+        }
+        impl substreams_ethereum::Event for Transfer {
+            const NAME: &'static str = "Transfer";
+            fn match_log(log: &substreams_ethereum::pb::eth::v1::Log) -> bool {
+                Self::match_log(log)
+            }
+            fn decode(
+                log: &substreams_ethereum::pb::eth::v1::Log,
+            ) -> Result<Self, String> {
+                Self::decode(log)
             }
         }
     }
