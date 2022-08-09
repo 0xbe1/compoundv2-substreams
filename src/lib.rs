@@ -20,6 +20,7 @@ fn map_accrue_interest(
 ) -> Result<compound::AccrueInterestList, substreams::errors::Error> {
     let mut accrue_interest_list: Vec<compound::AccrueInterest> = vec![];
     for log in blk.logs() {
+        // TODO: there are 2 versions of AccrueInterest events, 3-args (early blocks) vs 4-args
         if let Some(accrue_interest) = abi::ctoken::events::AccrueInterest::match_and_decode(log) {
             accrue_interest_list.push(compound::AccrueInterest {
                 interest_accumulated: accrue_interest.interest_accumulated.to_string(),
@@ -116,13 +117,13 @@ fn map_market_listed(
 }
 
 #[substreams::handlers::map]
-fn map_market_tvl(
+fn map_market_totals(
     accrue_interest_list: compound::AccrueInterestList,
     store_token: store::StoreGet,
     store_price: store::StoreGet,
-) -> Result<compound::MarketTvlList, substreams::errors::Error> {
-    let mut market_tvl_list = compound::MarketTvlList {
-        market_tvl_list: vec![],
+) -> Result<compound::MarketTotalsList, substreams::errors::Error> {
+    let mut market_totals_list = compound::MarketTotalsList {
+        market_totals_list: vec![],
     };
     for accrue_interest in accrue_interest_list.accrue_interest_list {
         let market_address = accrue_interest.address;
@@ -150,6 +151,8 @@ fn map_market_tvl(
             args: vec![],
         })
         .map(|x| utils::bytes_to_bigdecimal(x.as_ref()));
+        let total_borrows_mantissa =
+            BigDecimal::from_str(accrue_interest.total_borrows.as_str()).unwrap();
         if let (
             Some(underlying),
             Some(underlying_price),
@@ -166,15 +169,20 @@ fn map_market_tvl(
                 .div(exponent_to_big_decimal(
                     utils::MANTISSA_FACTOR + underlying.decimals,
                 ))
+                .mul(underlying_price.clone());
+            let total_borrows = total_borrows_mantissa
+                .div(exponent_to_big_decimal(underlying.decimals))
                 .mul(underlying_price);
-            let market_tvl = compound::MarketTvl {
+            // TODO: add exchange rate, input token balance, output token supply
+            let market_totals = compound::MarketTotals {
                 market: market_address,
-                tvl: total_value_locked.to_string(),
+                total_value_locked: total_value_locked.to_string(),
+                total_borrows: total_borrows.to_string(),
             };
-            market_tvl_list.market_tvl_list.push(market_tvl);
+            market_totals_list.market_totals_list.push(market_totals);
         }
     }
-    Ok(market_tvl_list)
+    Ok(market_totals_list)
 }
 
 #[substreams::handlers::map]
@@ -396,41 +404,59 @@ fn store_price(
 }
 
 #[substreams::handlers::store]
-fn store_market_tvl(market_tvl_list: compound::MarketTvlList, output: store::StoreSet) {
-    for market_tvl in market_tvl_list.market_tvl_list {
+fn store_market_totals(market_totals_list: compound::MarketTotalsList, output: store::StoreSet) {
+    for market_totals in market_totals_list.market_totals_list {
         output.set(
             0,
-            format!("market:{}:tvl", Hex::encode(market_tvl.market)),
-            &Vec::from(market_tvl.tvl),
-        )
+            format!("market:{}:tvl", Hex::encode(market_totals.market.clone())),
+            &Vec::from(market_totals.total_value_locked),
+        );
+        output.set(
+            0,
+            format!("market:{}:total_borrows", Hex::encode(market_totals.market)),
+            &Vec::from(market_totals.total_borrows),
+        );
     }
 }
 
 #[substreams::handlers::store]
-fn store_protocol_tvl(
-    market_tvl_list: compound::MarketTvlList,
+fn store_protocol_totals(
+    market_totals_list: compound::MarketTotalsList,
     store_market_listed: store::StoreGet,
-    store_market_tvl: store::StoreGet,
+    store_market_totals: store::StoreGet,
     output: store::StoreSet,
 ) {
-    for market_tvl in market_tvl_list.market_tvl_list {
-        let market_address = market_tvl.market;
+    for market_totals in market_totals_list.market_totals_list {
+        let market_address = market_totals.market;
         let market_listed_res: Option<Vec<Vec<u8>>> = store_market_listed
             .get_last(&"protocol:market_listed".to_string())
             .map(|x| x.chunks(20).map(|s| s.into()).collect());
         if let Some(market_listed) = market_listed_res {
-            let mut protocol_tvl: BigDecimal = BigDecimal::zero();
+            let mut protocol_tvl = BigDecimal::zero();
+            let mut protocol_total_borrows = BigDecimal::zero();
             for market in market_listed {
                 if market == market_address {
-                    protocol_tvl =
-                        protocol_tvl.add(BigDecimal::from_str(market_tvl.tvl.as_str()).unwrap());
+                    protocol_tvl = protocol_tvl.add(
+                        BigDecimal::from_str(market_totals.total_value_locked.as_str()).unwrap(),
+                    );
+                    protocol_total_borrows = protocol_total_borrows
+                        .add(BigDecimal::from_str(market_totals.total_borrows.as_str()).unwrap());
                     continue;
                 }
-                let other_market_tvl_res: Option<BigDecimal> = store_market_tvl
+                let other_market_tvl_res: Option<BigDecimal> = store_market_totals
                     .get_last(&format!("market:{}:tvl", Hex::encode(&market_address)))
                     .map(|x| utils::string_to_bigdecimal(x.as_ref()));
                 if let Some(other_market_tvl) = other_market_tvl_res {
                     protocol_tvl = protocol_tvl.add(other_market_tvl)
+                }
+                let other_market_total_borrows_res: Option<BigDecimal> = store_market_totals
+                    .get_last(&format!(
+                        "market:{}:total_borrows",
+                        Hex::encode(&market_address)
+                    ))
+                    .map(|x| utils::string_to_bigdecimal(x.as_ref()));
+                if let Some(other_market_total_borrows) = other_market_total_borrows_res {
+                    protocol_total_borrows = protocol_total_borrows.add(other_market_total_borrows)
                 }
             }
 
@@ -438,7 +464,12 @@ fn store_protocol_tvl(
                 0,
                 "protocol:tvl".to_string(),
                 &Vec::from(protocol_tvl.to_string()),
-            )
+            );
+            output.set(
+                0,
+                "protocol:total_borrows".to_string(),
+                &Vec::from(protocol_total_borrows.to_string()),
+            );
         }
     }
 }

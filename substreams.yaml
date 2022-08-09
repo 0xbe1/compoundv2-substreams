@@ -44,14 +44,14 @@ modules:
     output:
       type: proto:compound.v1.MarketListedList
 
-  - name: map_market_tvl
+  - name: map_market_totals
     kind: map
     inputs:
       - map: map_accrue_interest
       - store: store_token
       - store: store_price
     output:
-      type: proto:compound.v1.MarketTvlList
+      type: proto:compound.v1.MarketTotalsList
 
   - name: map_market_revenue_delta
     kind: map
@@ -123,21 +123,21 @@ modules:
     inputs:
       - map: map_mint
 
-  - name: store_market_tvl
+  - name: store_market_totals
     kind: store
     updatePolicy: set
     valueType: string
     inputs:
-      - map: map_market_tvl
+      - map: map_market_totals
 
-  - name: store_protocol_tvl
+  - name: store_protocol_totals
     kind: store
     updatePolicy: set
     valueType: string
     inputs:
-      - map: map_market_tvl
+      - map: map_market_totals
       - store: store_market_listed
-      - store: store_market_tvl
+      - store: store_market_totals
 
   - name: store_revenue
     kind: store

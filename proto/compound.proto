@@ -43,13 +43,14 @@ message MarketListedList {
   repeated MarketListed market_listed_list = 1;
 }
 
-message MarketTvl {
+message MarketTotals {
   bytes market = 1;
-  string tvl = 2;
+  string totalValueLocked = 2;
+  string totalBorrows = 3;
 }
 
-message MarketTvlList {
-  repeated MarketTvl market_tvl_list = 1;
+message MarketTotalsList {
+  repeated MarketTotals market_totals_list = 1;
 }
 
 message MarketRevenueDelta {

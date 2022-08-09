@@ -14,10 +14,10 @@ graph TD;
   store_price --> map_mint
   map_market_listed[map: map_market_listed]
   sf.ethereum.type.v1.Block[source: sf.ethereum.type.v1.Block] --> map_market_listed
-  map_market_tvl[map: map_market_tvl]
-  map_accrue_interest --> map_market_tvl
-  store_token --> map_market_tvl
-  store_price --> map_market_tvl
+  map_market_totals[map: map_market_totals]
+  map_accrue_interest --> map_market_totals
+  store_token --> map_market_totals
+  store_price --> map_market_totals
   map_market_revenue_delta[map: map_market_revenue_delta]
   map_accrue_interest --> map_market_revenue_delta
   store_market_reserve_factor --> map_market_revenue_delta
@@ -41,12 +41,12 @@ graph TD;
   map_market_listed --> store_market_listed
   store_mint[store: store_mint]
   map_mint --> store_mint
-  store_market_tvl[store: store_market_tvl]
-  map_market_tvl --> store_market_tvl
-  store_protocol_tvl[store: store_protocol_tvl]
-  map_market_tvl --> store_protocol_tvl
-  store_market_listed --> store_protocol_tvl
-  store_market_tvl --> store_protocol_tvl
+  store_market_totals[store: store_market_totals]
+  map_market_totals --> store_market_totals
+  store_protocol_totals[store: store_protocol_totals]
+  map_market_totals --> store_protocol_totals
+  store_market_listed --> store_protocol_totals
+  store_market_totals --> store_protocol_totals
   store_revenue[store: store_revenue]
   map_market_revenue_delta --> store_revenue
 ```
@@ -86,13 +86,17 @@ LendingProtocol
 - oracle
 - totalPoolCount
 - totalValueLockedUSD
+- totalBorrowBalanceUSD
 - cumulativeTotalRevenueUSD
 - cumulativeProtocolSideRevenueUSD
 - cumulativeSupplySideRevenueUSD
 
 Market
+- inputToken
+- outputToken
 - reserveFactor
 - totalValueLockedUSD
+- totalBorrowBalanceUSD
 - cumulativeTotalRevenueUSD
 - cumulativeProtocolSideRevenueUSD
 - cumulativeSupplySideRevenueUSD
