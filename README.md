@@ -107,6 +107,16 @@ Token
 UsageMetricsDailySnapshot
 - dailyDepositCount
 
+MarketDailySnapshot
+- dailyTotalRevenueUSD
+- dailyProtocolSideRevenueUSD
+- dailySupplySideRevenueUSD
+
+FinancialsDailySnapshot
+- dailyTotalRevenueUSD
+- dailyProtocolSideRevenueUSD
+- dailySupplySideRevenueUSD
+
 ## Troubleshooting
 
 Running `store_*` module could produce the below error. Just ignore it and retry.

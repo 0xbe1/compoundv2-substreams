@@ -12,6 +12,7 @@ message AccrueInterest {
   string total_borrows = 3;
   bytes address = 99;
   uint64 block_number = 98;
+  int64 timestamp = 97;
 }
 
 message Token {
@@ -56,6 +57,7 @@ message MarketRevenueDelta {
   string total_revenue = 2;
   string protocol_revenue = 3;
   string supply_revenue = 4;
+  int64 timestamp = 99;
 }
 
 message MarketRevenueDeltaList {

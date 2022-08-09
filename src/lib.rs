@@ -27,6 +27,14 @@ fn map_accrue_interest(
                 total_borrows: accrue_interest.total_borrows.to_string(),
                 address: log.log.address.clone(),
                 block_number: blk.number,
+                timestamp: blk
+                    .header
+                    .as_ref()
+                    .unwrap()
+                    .timestamp
+                    .as_ref()
+                    .unwrap()
+                    .seconds,
             })
         }
     }
@@ -204,6 +212,7 @@ fn map_market_revenue_delta(
                 total_revenue: total_revenue.to_string(),
                 protocol_revenue: protocol_revenue.to_string(),
                 supply_revenue: supply_revenue.to_string(),
+                timestamp: accrue_interest.timestamp,
             };
             market_revenue_delta_list
                 .market_revenue_delta_list
@@ -447,6 +456,8 @@ fn store_revenue(
             BigDecimal::from_str(market_revenue_delta.protocol_revenue.as_str()).unwrap();
         let supply_revenue_delta =
             BigDecimal::from_str(market_revenue_delta.supply_revenue.as_str()).unwrap();
+
+        // spot revenue
         output.add(
             0,
             format!("market:{}:revenue:total", market_address),
@@ -475,6 +486,59 @@ fn store_revenue(
         output.add(
             0,
             "protocol:revenue:supply".to_string(),
+            &supply_revenue_delta,
+        );
+
+        // snapshot revenue
+        output.add(
+            0,
+            format!(
+                "market:{}:revenue:total:{}",
+                market_address,
+                market_revenue_delta.timestamp / (24 * 60 * 60)
+            ),
+            &total_revenue_delta,
+        );
+        output.add(
+            0,
+            format!(
+                "market:{}:revenue:protocol:{}",
+                market_address,
+                market_revenue_delta.timestamp / (24 * 60 * 60)
+            ),
+            &BigDecimal::from_str(market_revenue_delta.protocol_revenue.as_str()).unwrap(),
+        );
+        output.add(
+            0,
+            format!(
+                "market:{}:revenue:supply:{}",
+                market_address,
+                market_revenue_delta.timestamp / (24 * 60 * 60)
+            ),
+            &BigDecimal::from_str(market_revenue_delta.supply_revenue.as_str()).unwrap(),
+        );
+        output.add(
+            0,
+            format!(
+                "protocol:revenue:total:{}",
+                market_revenue_delta.timestamp / (24 * 60 * 60)
+            ),
+            &total_revenue_delta,
+        );
+        output.add(
+            0,
+            format!(
+                "protocol:revenue:protocol:{}",
+                market_revenue_delta.timestamp / (24 * 60 * 60)
+            ),
+            &protocol_revenue_delta,
+        );
+        output.add(
+            0,
+            format!(
+                "protocol:revenue:supply:{}",
+                market_revenue_delta.timestamp / (24 * 60 * 60)
+            ),
             &supply_revenue_delta,
         );
     }
