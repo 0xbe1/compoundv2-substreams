@@ -1,5 +1,11 @@
 # CompoundV2 Substreams
 
+## Archive Note
+
+The repo has migrated to https://github.com/messari/substreams.
+
+---
+
 Ongoing effort to index Compound V2 using substreams.
 
 ## Architecture
